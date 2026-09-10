@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/handlers"
+	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -16,10 +17,11 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	router.Get("/api/health", handlers.Health)
+	dishRepository := repository.NewDishRepository()
+	dishHandler := handlers.NewDishHandler(dishRepository)
 
 	router.Get("/api/health", handlers.Health)
-	router.Get("/api/dishes", handlers.ListDishes)
+	router.Get("/api/dishes", dishHandler.List)
 
 	address := ":8080"
 	fmt.Printf("Cheap Eats API running at http://localhost%s\n", address)

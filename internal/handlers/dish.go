@@ -4,26 +4,21 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/cassiokiyoshi/cheap-eats/internal/models"
+	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 )
 
-func ListDishes(w http.ResponseWriter, r *http.Request) {
-	dishes := []models.Dish{
-		{
-			ID:             1,
-			Name:           "Shoyu Ramen",
-			Price:          850,
-			Currency:       "JPY",
-			RestaurantName: "Tokyo Ramen",
-		},
-		{
-			ID:             2,
-			Name:           "Gyudon",
-			Price:          650,
-			Currency:       "JPY",
-			RestaurantName: "Cheap Bowl",
-		},
+type DishHandler struct {
+	repository *repository.DishRepository
+}
+
+func NewDishHandler(repository *repository.DishRepository) *DishHandler {
+	return &DishHandler{
+		repository: repository,
 	}
+}
+
+func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
+	dishes := h.repository.List()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
