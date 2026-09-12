@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	"github.com/cassiokiyoshi/cheap-eats/internal/database"
 	"github.com/cassiokiyoshi/cheap-eats/internal/handlers"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 	"github.com/cassiokiyoshi/cheap-eats/internal/service"
@@ -13,6 +16,21 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
+	databaseURL := os.Getenv("DATABASE_URL")
+	if databaseURL == "" {
+		log.Fatal("DATABASE_URL is required")
+	}
+
+	databasePool, err := database.Open(ctx, databaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer databasePool.Close()
+
+	log.Println("Connected to PostgreSQL")
+
 	router := chi.NewRouter()
 
 	router.Use(middleware.Logger)
