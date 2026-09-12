@@ -6,13 +6,13 @@ import (
 )
 
 type DishService struct {
-	dishRepository       *repository.DishRepository
-	restaurantRepository *repository.RestaurantRepository
+	dishRepository       repository.DishStore
+	restaurantRepository repository.RestaurantStore
 }
 
 func NewDishService(
-	dishRepository *repository.DishRepository,
-	restaurantRepository *repository.RestaurantRepository,
+	dishRepository repository.DishStore,
+	restaurantRepository repository.RestaurantStore,
 ) *DishService {
 	return &DishService{
 		dishRepository:       dishRepository,

@@ -12,13 +12,13 @@ import (
 )
 
 type DishHandler struct {
-	dishRepository       *repository.DishRepository
-	restaurantRepository *repository.RestaurantRepository
+	dishRepository       repository.DishStore
+	restaurantRepository repository.RestaurantStore
 }
 
 func NewDishHandler(
-	dishRepository *repository.DishRepository,
-	restaurantRepository *repository.RestaurantRepository,
+	dishRepository repository.DishStore,
+	restaurantRepository repository.RestaurantStore,
 ) *DishHandler {
 	return &DishHandler{
 		dishRepository:       dishRepository,

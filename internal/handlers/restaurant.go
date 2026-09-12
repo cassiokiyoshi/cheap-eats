@@ -10,11 +10,11 @@ import (
 )
 
 type RestaurantHandler struct {
-	repository *repository.RestaurantRepository
+	repository repository.RestaurantStore
 }
 
 func NewRestaurantHandler(
-	repository *repository.RestaurantRepository,
+	repository repository.RestaurantStore,
 ) *RestaurantHandler {
 	return &RestaurantHandler{
 		repository: repository,
