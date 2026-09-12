@@ -35,6 +35,7 @@ func main() {
 	router.Post("/api/dishes", dishHandler.Create)
 
 	router.Get("/api/restaurants", restaurantHandler.List)
+	router.Get("/api/restaurants/nearby", restaurantHandler.Nearby)
 	router.Get("/api/restaurants/{id}", restaurantHandler.Get)
 
 	address := ":8080"
