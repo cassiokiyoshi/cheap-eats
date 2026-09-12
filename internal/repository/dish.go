@@ -33,3 +33,13 @@ func (r *DishRepository) List() []models.Dish {
 
 	return dishes
 }
+
+func (r *DishRepository) FindByID(id int64) (models.Dish, bool) {
+	for _, dish := range r.dishes {
+		if dish.ID == id {
+			return dish, true
+		}
+	}
+
+	return models.Dish{}, false
+}
