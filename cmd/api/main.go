@@ -7,6 +7,7 @@ import (
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/handlers"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
+	"github.com/cassiokiyoshi/cheap-eats/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -24,6 +25,13 @@ func main() {
 		dishRepository,
 		restaurantRepository,
 	)
+
+	dishService := service.NewDishService(
+		dishRepository,
+		restaurantRepository,
+	)
+	dishSearchHandler := handlers.NewDishSearchHandler(dishService)
+
 	restaurantHandler := handlers.NewRestaurantHandler(
 		restaurantRepository,
 	)
@@ -31,6 +39,7 @@ func main() {
 	router.Get("/api/health", handlers.Health)
 
 	router.Get("/api/dishes", dishHandler.List)
+	router.Get("/api/dishes/nearby", dishSearchHandler.Nearby)
 	router.Get("/api/dishes/{id}", dishHandler.Get)
 	router.Post("/api/dishes", dishHandler.Create)
 

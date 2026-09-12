@@ -29,9 +29,22 @@ func NewDishHandler(
 func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
 	dishes := h.dishRepository.List()
 
+	if value := r.URL.Query().Get("max_price"); value != "" {
+		maxPrice, err := strconv.Atoi(value)
+		if err != nil || maxPrice <= 0 {
+			http.Error(
+				w,
+				"max_price must be a positive integer",
+				http.StatusBadRequest,
+			)
+			return
+		}
+
+		dishes = h.dishRepository.ListByMaxPrice(maxPrice)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
 	json.NewEncoder(w).Encode(dishes)
 }
 

@@ -44,6 +44,23 @@ func (r *DishRepository) List() []models.Dish {
 	return dishes
 }
 
+func (r *DishRepository) ListByMaxPrice(
+	maxPrice int,
+) []models.Dish {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	dishes := make([]models.Dish, 0)
+
+	for _, dish := range r.dishes {
+		if dish.Price <= maxPrice {
+			dishes = append(dishes, dish)
+		}
+	}
+
+	return dishes
+}
+
 func (r *DishRepository) FindByID(id int64) (models.Dish, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
