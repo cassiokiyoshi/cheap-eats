@@ -13,13 +13,14 @@ import (
 
 func TestCreateDish(t *testing.T) {
 	dishRepository := repository.NewDishRepository()
-	dishHandler := NewDishHandler(dishRepository)
+	restaurantRepository := repository.NewRestaurantRepository()
+	dishHandler := NewDishHandler(dishRepository, restaurantRepository)
 
 	body := `{
+		"restaurant_id": 1,
 		"name": "Chicken Curry",
 		"price": 900,
-		"currency": "jpy",
-		"restaurant_name": "Curry House"
+		"currency": "jpy"
 	}`
 
 	request := httptest.NewRequest(
@@ -57,5 +58,9 @@ func TestCreateDish(t *testing.T) {
 
 	if dish.Currency != "JPY" {
 		t.Errorf("expected JPY, got %q", dish.Currency)
+	}
+
+	if dish.RestaurantID != 1 {
+		t.Errorf("expected restaurant ID 1, got %d", dish.RestaurantID)
 	}
 }

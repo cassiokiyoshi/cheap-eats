@@ -12,17 +12,22 @@ import (
 )
 
 type DishHandler struct {
-	repository *repository.DishRepository
+	dishRepository       *repository.DishRepository
+	restaurantRepository *repository.RestaurantRepository
 }
 
-func NewDishHandler(repository *repository.DishRepository) *DishHandler {
+func NewDishHandler(
+	dishRepository *repository.DishRepository,
+	restaurantRepository *repository.RestaurantRepository,
+) *DishHandler {
 	return &DishHandler{
-		repository: repository,
+		dishRepository:       dishRepository,
+		restaurantRepository: restaurantRepository,
 	}
 }
 
 func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
-	dishes := h.repository.List()
+	dishes := h.dishRepository.List()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -37,7 +42,7 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dish, found := h.repository.FindByID(id)
+	dish, found := h.dishRepository.FindByID(id)
 	if !found {
 		http.Error(w, "dish not found", http.StatusNotFound)
 		return
@@ -50,10 +55,10 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 type createDishInput struct {
-	Name           string `json:"name"`
-	Price          int    `json:"price"`
-	Currency       string `json:"currency"`
-	RestaurantName string `json:"restaurant_name"`
+	Name         string `json:"name"`
+	Price        int    `json:"price"`
+	Currency     string `json:"currency"`
+	RestaurantID int64  `json:"restaurant_id"`
 }
 
 func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -69,10 +74,19 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	input.Name = strings.TrimSpace(input.Name)
 	input.Currency = strings.ToUpper(strings.TrimSpace(input.Currency))
-	input.RestaurantName = strings.TrimSpace(input.RestaurantName)
 
-	if input.Name == "" || input.RestaurantName == "" {
-		http.Error(w, "name and restaurant_name are required", http.StatusBadRequest)
+	if input.Name == "" {
+		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
+	if input.RestaurantID < 1 {
+		http.Error(w, "restaurant_id is required", http.StatusBadRequest)
+		return
+	}
+
+	if _, found := h.restaurantRepository.FindByID(input.RestaurantID); !found {
+		http.Error(w, "restaurant not found", http.StatusBadRequest)
 		return
 	}
 
@@ -86,13 +100,13 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	dish := models.Dish{
-		Name:           input.Name,
-		Price:          input.Price,
-		Currency:       input.Currency,
-		RestaurantName: input.RestaurantName,
+		Name:         input.Name,
+		Price:        input.Price,
+		Currency:     input.Currency,
+		RestaurantID: input.RestaurantID,
 	}
 
-	createdDish := h.repository.Create(dish)
+	createdDish := h.dishRepository.Create(dish)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

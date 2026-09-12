@@ -16,18 +16,18 @@ func NewDishRepository() *DishRepository {
 	return &DishRepository{
 		dishes: []models.Dish{
 			{
-				ID:             1,
-				Name:           "Shoyu Ramen",
-				Price:          850,
-				Currency:       "JPY",
-				RestaurantName: "Tokyo Ramen",
+				ID:           1,
+				RestaurantID: 1,
+				Name:         "Shoyu Ramen",
+				Price:        850,
+				Currency:     "JPY",
 			},
 			{
-				ID:             2,
-				Name:           "Gyudon",
-				Price:          650,
-				Currency:       "JPY",
-				RestaurantName: "Cheap Bowl",
+				ID:           2,
+				RestaurantID: 2,
+				Name:         "Gyudon",
+				Price:        650,
+				Currency:     "JPY",
 			},
 		},
 		nextID: 3,

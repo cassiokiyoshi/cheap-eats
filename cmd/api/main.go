@@ -18,12 +18,24 @@ func main() {
 	router.Use(middleware.Recoverer)
 
 	dishRepository := repository.NewDishRepository()
-	dishHandler := handlers.NewDishHandler(dishRepository)
+	restaurantRepository := repository.NewRestaurantRepository()
+
+	dishHandler := handlers.NewDishHandler(
+		dishRepository,
+		restaurantRepository,
+	)
+	restaurantHandler := handlers.NewRestaurantHandler(
+		restaurantRepository,
+	)
 
 	router.Get("/api/health", handlers.Health)
+
 	router.Get("/api/dishes", dishHandler.List)
 	router.Get("/api/dishes/{id}", dishHandler.Get)
 	router.Post("/api/dishes", dishHandler.Create)
+
+	router.Get("/api/restaurants", restaurantHandler.List)
+	router.Get("/api/restaurants/{id}", restaurantHandler.Get)
 
 	address := ":8080"
 	fmt.Printf("Cheap Eats API running at http://localhost%s\n", address)
