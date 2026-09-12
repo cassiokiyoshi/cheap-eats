@@ -23,6 +23,7 @@ func main() {
 	router.Get("/api/health", handlers.Health)
 	router.Get("/api/dishes", dishHandler.List)
 	router.Get("/api/dishes/{id}", dishHandler.Get)
+	router.Post("/api/dishes", dishHandler.Create)
 
 	address := ":8080"
 	fmt.Printf("Cheap Eats API running at http://localhost%s\n", address)

@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
+	"github.com/cassiokiyoshi/cheap-eats/internal/models"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 	"github.com/go-chi/chi/v5"
 )
@@ -45,4 +47,54 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 
 	json.NewEncoder(w).Encode(dish)
+}
+
+type createDishInput struct {
+	Name           string `json:"name"`
+	Price          int    `json:"price"`
+	Currency       string `json:"currency"`
+	RestaurantName string `json:"restaurant_name"`
+}
+
+func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
+	var input createDishInput
+
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(&input); err != nil {
+		http.Error(w, "invalid JSON body", http.StatusBadRequest)
+		return
+	}
+
+	input.Name = strings.TrimSpace(input.Name)
+	input.Currency = strings.ToUpper(strings.TrimSpace(input.Currency))
+	input.RestaurantName = strings.TrimSpace(input.RestaurantName)
+
+	if input.Name == "" || input.RestaurantName == "" {
+		http.Error(w, "name and restaurant_name are required", http.StatusBadRequest)
+		return
+	}
+
+	if input.Price <= 0 {
+		http.Error(w, "price must be greater than zero", http.StatusBadRequest)
+		return
+	}
+
+	if input.Currency == "" {
+		input.Currency = "JPY"
+	}
+
+	dish := models.Dish{
+		Name:           input.Name,
+		Price:          input.Price,
+		Currency:       input.Currency,
+		RestaurantName: input.RestaurantName,
+	}
+
+	createdDish := h.repository.Create(dish)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(createdDish)
 }
