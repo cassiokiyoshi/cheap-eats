@@ -98,7 +98,16 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, found := h.restaurantRepository.FindByID(input.RestaurantID); !found {
+	_, found, err := h.restaurantRepository.FindByID(
+		r.Context(),
+		input.RestaurantID,
+	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	if !found {
 		http.Error(w, "restaurant not found", http.StatusBadRequest)
 		return
 	}

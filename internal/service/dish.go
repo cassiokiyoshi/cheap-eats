@@ -1,6 +1,8 @@
 package service
 
 import (
+	"context"
+
 	"github.com/cassiokiyoshi/cheap-eats/internal/models"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 )
@@ -21,18 +23,23 @@ func NewDishService(
 }
 
 func (s *DishService) SearchNearby(
+	ctx context.Context,
 	latitude float64,
 	longitude float64,
 	radiusMeters float64,
 	maxPrice int,
-) []models.DishSearchResult {
-	restaurants := s.restaurantRepository.Nearby(
+) ([]models.DishSearchResult, error) {
+	restaurants, err := s.restaurantRepository.Nearby(
+		ctx,
 		latitude,
 		longitude,
 		radiusMeters,
 	)
-	dishes := s.dishRepository.ListByMaxPrice(maxPrice)
+	if err != nil {
+		return nil, err
+	}
 
+	dishes := s.dishRepository.ListByMaxPrice(maxPrice)
 	results := make([]models.DishSearchResult, 0)
 
 	for _, restaurant := range restaurants {
@@ -47,5 +54,5 @@ func (s *DishService) SearchNearby(
 		}
 	}
 
-	return results
+	return results, nil
 }

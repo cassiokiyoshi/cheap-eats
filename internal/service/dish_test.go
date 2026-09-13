@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
@@ -15,12 +16,16 @@ func TestSearchNearbyFiltersByBudget(t *testing.T) {
 		restaurantRepository,
 	)
 
-	results := service.SearchNearby(
+	results, err := service.SearchNearby(
+		context.Background(),
 		35.6812,
 		139.7671,
 		2000,
 		700,
 	)
+	if err != nil {
+		t.Fatalf("search nearby dishes: %v", err)
+	}
 
 	if len(results) != 1 {
 		t.Fatalf(
@@ -53,12 +58,16 @@ func TestSearchNearbyFiltersByDistance(t *testing.T) {
 		restaurantRepository,
 	)
 
-	results := service.SearchNearby(
+	results, err := service.SearchNearby(
+		context.Background(),
 		35.6812,
 		139.7671,
 		500,
 		1000,
 	)
+	if err != nil {
+		t.Fatalf("search nearby dishes: %v", err)
+	}
 
 	if len(results) != 1 {
 		t.Fatalf(

@@ -67,12 +67,17 @@ func (h *DishSearchHandler) Nearby(
 		return
 	}
 
-	results := h.service.SearchNearby(
+	results, err := h.service.SearchNearby(
+		r.Context(),
 		latitude,
 		longitude,
 		radius,
 		maxPrice,
 	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

@@ -1,15 +1,22 @@
 package repository
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestRestaurantRepositoryNearby(t *testing.T) {
 	repository := NewRestaurantRepository()
 
-	restaurants := repository.Nearby(
+	restaurants, err := repository.Nearby(
+		context.Background(),
 		35.6812,
 		139.7671,
 		500,
 	)
+	if err != nil {
+		t.Fatalf("search nearby restaurants: %v", err)
+	}
 
 	if len(restaurants) != 1 {
 		t.Fatalf(
@@ -36,11 +43,15 @@ func TestRestaurantRepositoryNearby(t *testing.T) {
 func TestRestaurantRepositoryNearbyOrdersByDistance(t *testing.T) {
 	repository := NewRestaurantRepository()
 
-	restaurants := repository.Nearby(
+	restaurants, err := repository.Nearby(
+		context.Background(),
 		35.6812,
 		139.7671,
 		2000,
 	)
+	if err != nil {
+		t.Fatalf("search nearby restaurants: %v", err)
+	}
 
 	if len(restaurants) != 2 {
 		t.Fatalf(

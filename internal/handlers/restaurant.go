@@ -22,7 +22,11 @@ func NewRestaurantHandler(
 }
 
 func (h *RestaurantHandler) List(w http.ResponseWriter, r *http.Request) {
-	restaurants := h.repository.List()
+	restaurants, err := h.repository.List(r.Context())
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -36,7 +40,15 @@ func (h *RestaurantHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	restaurant, found := h.repository.FindByID(id)
+	restaurant, found, err := h.repository.FindByID(
+		r.Context(),
+		id,
+	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if !found {
 		http.Error(w, "restaurant not found", http.StatusNotFound)
 		return
@@ -77,11 +89,16 @@ func (h *RestaurantHandler) Nearby(
 		}
 	}
 
-	restaurants := h.repository.Nearby(
+	restaurants, err := h.repository.Nearby(
+		r.Context(),
 		latitude,
 		longitude,
 		radius,
 	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

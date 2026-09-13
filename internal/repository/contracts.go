@@ -1,6 +1,10 @@
 package repository
 
-import "github.com/cassiokiyoshi/cheap-eats/internal/models"
+import (
+	"context"
+
+	"github.com/cassiokiyoshi/cheap-eats/internal/models"
+)
 
 type DishStore interface {
 	List() []models.Dish
@@ -10,12 +14,17 @@ type DishStore interface {
 }
 
 type RestaurantStore interface {
-	List() []models.Restaurant
-	FindByID(id int64) (models.Restaurant, bool)
+	List(ctx context.Context) ([]models.Restaurant, error)
+
+	FindByID(
+		ctx context.Context,
+		id int64,
+	) (models.Restaurant, bool, error)
 
 	Nearby(
+		ctx context.Context,
 		latitude float64,
 		longitude float64,
 		radiusMeters float64,
-	) []models.RestaurantSuggestion
+	) ([]models.RestaurantSuggestion, error)
 }

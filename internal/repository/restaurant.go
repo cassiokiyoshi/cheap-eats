@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"math"
 	"sort"
 	"sync"
@@ -34,34 +35,40 @@ func NewRestaurantRepository() *RestaurantRepository {
 	}
 }
 
-func (r *RestaurantRepository) List() []models.Restaurant {
+func (r *RestaurantRepository) List(
+	_ context.Context,
+) ([]models.Restaurant, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	restaurants := make([]models.Restaurant, len(r.restaurants))
 	copy(restaurants, r.restaurants)
 
-	return restaurants
+	return restaurants, nil
 }
 
-func (r *RestaurantRepository) FindByID(id int64) (models.Restaurant, bool) {
+func (r *RestaurantRepository) FindByID(
+	_ context.Context,
+	id int64,
+) (models.Restaurant, bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	for _, restaurant := range r.restaurants {
 		if restaurant.ID == id {
-			return restaurant, true
+			return restaurant, true, nil
 		}
 	}
 
-	return models.Restaurant{}, false
+	return models.Restaurant{}, false, nil
 }
 
 func (r *RestaurantRepository) Nearby(
+	_ context.Context,
 	latitude float64,
 	longitude float64,
 	radiusMeters float64,
-) []models.RestaurantSuggestion {
+) ([]models.RestaurantSuggestion, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -91,7 +98,7 @@ func (r *RestaurantRepository) Nearby(
 			suggestions[j].DistanceMeters
 	})
 
-	return suggestions
+	return suggestions, nil
 }
 
 func distanceMeters(
