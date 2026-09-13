@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sort"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/models"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
@@ -28,6 +29,7 @@ func (s *DishService) SearchNearby(
 	longitude float64,
 	radiusMeters float64,
 	maxPrice int,
+	sortBy string,
 ) ([]models.DishSearchResult, error) {
 	restaurants, err := s.restaurantRepository.Nearby(
 		ctx,
@@ -58,6 +60,31 @@ func (s *DishService) SearchNearby(
 				})
 			}
 		}
+	}
+
+	switch sortBy {
+	case "price":
+		sort.SliceStable(results, func(i, j int) bool {
+			if results[i].Dish.Price == results[j].Dish.Price {
+				return results[i].DistanceMeters <
+					results[j].DistanceMeters
+			}
+
+			return results[i].Dish.Price <
+				results[j].Dish.Price
+		})
+
+	default:
+		sort.SliceStable(results, func(i, j int) bool {
+			if results[i].DistanceMeters ==
+				results[j].DistanceMeters {
+				return results[i].Dish.Price <
+					results[j].Dish.Price
+			}
+
+			return results[i].DistanceMeters <
+				results[j].DistanceMeters
+		})
 	}
 
 	return results, nil

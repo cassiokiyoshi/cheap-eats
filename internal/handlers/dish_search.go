@@ -67,13 +67,31 @@ func (h *DishSearchHandler) Nearby(
 		return
 	}
 
+	sortBy := r.URL.Query().Get("sort")
+
+	switch sortBy {
+	case "", "distance":
+		sortBy = "distance"
+	case "price":
+		// Valid option.
+	default:
+		http.Error(
+			w,
+			"sort must be distance or price",
+			http.StatusBadRequest,
+		)
+		return
+	}
+
 	results, err := h.service.SearchNearby(
 		r.Context(),
 		latitude,
 		longitude,
 		radius,
 		maxPrice,
+		sortBy,
 	)
+
 	if err != nil {
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

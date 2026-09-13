@@ -22,6 +22,7 @@ func TestSearchNearbyFiltersByBudget(t *testing.T) {
 		139.7671,
 		2000,
 		700,
+		"distance",
 	)
 	if err != nil {
 		t.Fatalf("search nearby dishes: %v", err)
@@ -64,6 +65,7 @@ func TestSearchNearbyFiltersByDistance(t *testing.T) {
 		139.7671,
 		500,
 		1000,
+		"distance",
 	)
 	if err != nil {
 		t.Fatalf("search nearby dishes: %v", err)
@@ -87,6 +89,49 @@ func TestSearchNearbyFiltersByDistance(t *testing.T) {
 		t.Errorf(
 			"expected Shoyu Ramen, got %q",
 			results[0].Dish.Name,
+		)
+	}
+}
+
+func TestSearchNearbyOrdersByPrice(t *testing.T) {
+	dishRepository := repository.NewDishRepository()
+	restaurantRepository := repository.NewRestaurantRepository()
+
+	service := NewDishService(
+		dishRepository,
+		restaurantRepository,
+	)
+
+	results, err := service.SearchNearby(
+		context.Background(),
+		35.6812,
+		139.7671,
+		2000,
+		1000,
+		"price",
+	)
+	if err != nil {
+		t.Fatalf("search nearby dishes: %v", err)
+	}
+
+	if len(results) != 2 {
+		t.Fatalf(
+			"expected 2 results, got %d",
+			len(results),
+		)
+	}
+
+	if results[0].Dish.Name != "Gyudon" {
+		t.Errorf(
+			"expected cheapest dish Gyudon first, got %q",
+			results[0].Dish.Name,
+		)
+	}
+
+	if results[1].Dish.Name != "Shoyu Ramen" {
+		t.Errorf(
+			"expected Shoyu Ramen second, got %q",
+			results[1].Dish.Name,
 		)
 	}
 }
