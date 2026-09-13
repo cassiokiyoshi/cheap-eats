@@ -39,7 +39,13 @@ func (s *DishService) SearchNearby(
 		return nil, err
 	}
 
-	dishes := s.dishRepository.ListByMaxPrice(maxPrice)
+	dishes, err := s.dishRepository.ListByMaxPrice(
+		ctx,
+		maxPrice,
+	)
+	if err != nil {
+		return nil, err
+	}
 	results := make([]models.DishSearchResult, 0)
 
 	for _, restaurant := range restaurants {

@@ -36,7 +36,8 @@ func main() {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
-	dishRepository := repository.NewDishRepository()
+	dishRepository :=
+		repository.NewPostgresDishRepository(databasePool)
 
 	restaurantRepository :=
 		repository.NewPostgresRestaurantRepository(databasePool)

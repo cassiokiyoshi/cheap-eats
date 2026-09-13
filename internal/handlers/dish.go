@@ -27,11 +27,14 @@ func NewDishHandler(
 }
 
 func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
-	dishes := h.dishRepository.List()
+	var (
+		dishes []models.Dish
+		err    error
+	)
 
 	if value := r.URL.Query().Get("max_price"); value != "" {
-		maxPrice, err := strconv.Atoi(value)
-		if err != nil || maxPrice <= 0 {
+		maxPrice, parseErr := strconv.Atoi(value)
+		if parseErr != nil || maxPrice <= 0 {
 			http.Error(
 				w,
 				"max_price must be a positive integer",
@@ -40,7 +43,17 @@ func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		dishes = h.dishRepository.ListByMaxPrice(maxPrice)
+		dishes, err = h.dishRepository.ListByMaxPrice(
+			r.Context(),
+			maxPrice,
+		)
+	} else {
+		dishes, err = h.dishRepository.List(r.Context())
+	}
+
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -55,7 +68,15 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	dish, found := h.dishRepository.FindByID(id)
+	dish, found, err := h.dishRepository.FindByID(
+		r.Context(),
+		id,
+	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
 	if !found {
 		http.Error(w, "dish not found", http.StatusNotFound)
 		return
@@ -128,7 +149,14 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		RestaurantID: input.RestaurantID,
 	}
 
-	createdDish := h.dishRepository.Create(dish)
+	createdDish, err := h.dishRepository.Create(
+		r.Context(),
+		dish,
+	)
+	if err != nil {
+		http.Error(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

@@ -1,11 +1,20 @@
 package repository
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestDishRepositoryFindByID(t *testing.T) {
 	repository := NewDishRepository()
 
-	dish, found := repository.FindByID(1)
+	dish, found, err := repository.FindByID(
+		context.Background(),
+		1,
+	)
+	if err != nil {
+		t.Fatalf("find dish: %v", err)
+	}
 
 	if !found {
 		t.Fatal("expected dish to be found")
@@ -23,7 +32,14 @@ func TestDishRepositoryFindByID(t *testing.T) {
 func TestDishRepositoryFindByIDNotFound(t *testing.T) {
 	repository := NewDishRepository()
 
-	_, found := repository.FindByID(999)
+	_, found, err := repository.FindByID(
+		context.Background(),
+		999,
+	)
+
+	if err != nil {
+		t.Fatalf("find dish: %v", err)
+	}
 
 	if found {
 		t.Error("expected dish not to be found")
@@ -33,7 +49,13 @@ func TestDishRepositoryFindByIDNotFound(t *testing.T) {
 func TestDishRepositoryListByMaxPrice(t *testing.T) {
 	repository := NewDishRepository()
 
-	dishes := repository.ListByMaxPrice(700)
+	dishes, err := repository.ListByMaxPrice(
+		context.Background(),
+		700,
+	)
+	if err != nil {
+		t.Fatalf("list dishes by maximum price: %v", err)
+	}
 
 	if len(dishes) != 1 {
 		t.Fatalf(

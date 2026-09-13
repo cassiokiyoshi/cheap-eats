@@ -38,4 +38,46 @@ WHERE NOT EXISTS (
       AND address = 'Kanda, Tokyo'
 );
 
+INSERT INTO dishes (
+    restaurant_id,
+    name,
+    price,
+    currency
+)
+SELECT
+    restaurants.id,
+    'Shoyu Ramen',
+    850,
+    'JPY'
+FROM restaurants
+WHERE restaurants.name = 'Tokyo Ramen'
+  AND restaurants.address = 'Marunouchi, Tokyo'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dishes
+      WHERE dishes.restaurant_id = restaurants.id
+        AND dishes.name = 'Shoyu Ramen'
+  );
+
+INSERT INTO dishes (
+    restaurant_id,
+    name,
+    price,
+    currency
+)
+SELECT
+    restaurants.id,
+    'Gyudon',
+    650,
+    'JPY'
+FROM restaurants
+WHERE restaurants.name = 'Cheap Bowl'
+  AND restaurants.address = 'Kanda, Tokyo'
+  AND NOT EXISTS (
+      SELECT 1
+      FROM dishes
+      WHERE dishes.restaurant_id = restaurants.id
+        AND dishes.name = 'Gyudon'
+  );
+
 COMMIT;
