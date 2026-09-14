@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"math"
 	"net/http"
 	"strconv"
 
@@ -40,7 +41,8 @@ func (h *DishSearchHandler) Nearby(
 		r.URL.Query().Get("lat"),
 		64,
 	)
-	if err != nil || latitude < -90 || latitude > 90 {
+	if err != nil || math.IsNaN(latitude) || math.IsInf(latitude, 0) ||
+		latitude < -90 || latitude > 90 {
 		http.Error(w, "invalid latitude", http.StatusBadRequest)
 		return
 	}
@@ -49,7 +51,8 @@ func (h *DishSearchHandler) Nearby(
 		r.URL.Query().Get("lng"),
 		64,
 	)
-	if err != nil || longitude < -180 || longitude > 180 {
+	if err != nil || math.IsNaN(longitude) || math.IsInf(longitude, 0) ||
+		longitude < -180 || longitude > 180 {
 		http.Error(w, "invalid longitude", http.StatusBadRequest)
 		return
 	}
@@ -57,7 +60,8 @@ func (h *DishSearchHandler) Nearby(
 	radius := 1000.0
 	if value := r.URL.Query().Get("radius"); value != "" {
 		radius, err = strconv.ParseFloat(value, 64)
-		if err != nil || radius <= 0 || radius > 5000 {
+		if err != nil || math.IsNaN(radius) || math.IsInf(radius, 0) ||
+			radius < 1 || radius > 5000 {
 			http.Error(
 				w,
 				"radius must be between 1 and 5000 meters",
