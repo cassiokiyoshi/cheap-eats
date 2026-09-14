@@ -18,6 +18,8 @@ type DishSearcher interface {
 		radiusMeters float64,
 		maxPrice int,
 		sortBy string,
+		limit int,
+		offset int,
 	) ([]models.DishSearchResult, error)
 }
 
@@ -99,6 +101,34 @@ func (h *DishSearchHandler) Nearby(
 		return
 	}
 
+	limit := 20
+	if values, exists := r.URL.Query()["limit"]; exists {
+		value, parseErr := strconv.Atoi(values[0])
+		if parseErr != nil || value < 1 || value > 100 {
+			http.Error(
+				w,
+				"limit must be between 1 and 100",
+				http.StatusBadRequest,
+			)
+			return
+		}
+		limit = value
+	}
+
+	offset := 0
+	if values, exists := r.URL.Query()["offset"]; exists {
+		value, parseErr := strconv.Atoi(values[0])
+		if parseErr != nil || value < 0 {
+			http.Error(
+				w,
+				"offset must be a nonnegative integer",
+				http.StatusBadRequest,
+			)
+			return
+		}
+		offset = value
+	}
+
 	results, err := h.service.SearchNearby(
 		r.Context(),
 		latitude,
@@ -106,6 +136,8 @@ func (h *DishSearchHandler) Nearby(
 		radius,
 		maxPrice,
 		sortBy,
+		limit,
+		offset,
 	)
 
 	if err != nil {

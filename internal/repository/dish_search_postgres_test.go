@@ -41,6 +41,8 @@ func TestPostgresDishSearchNearby(t *testing.T) {
 		radius   float64
 		maxPrice int
 		sortBy   string
+		limit    int
+		offset   int
 		want     []string
 	}{
 		{
@@ -78,10 +80,41 @@ func TestPostgresDishSearchNearby(t *testing.T) {
 			sortBy:   "distance",
 			want:     []string{},
 		},
+		{
+			name:     "first page by price",
+			radius:   2000,
+			maxPrice: 1000,
+			sortBy:   "price",
+			limit:    1,
+			offset:   0,
+			want:     []string{"Gyudon"},
+		},
+		{
+			name:     "second page by price",
+			radius:   2000,
+			maxPrice: 1000,
+			sortBy:   "price",
+			limit:    1,
+			offset:   1,
+			want:     []string{"Shoyu Ramen"},
+		},
+		{
+			name:     "page beyond results",
+			radius:   2000,
+			maxPrice: 1000,
+			sortBy:   "price",
+			limit:    1,
+			offset:   2,
+			want:     []string{},
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			limit := tt.limit
+			if limit == 0 {
+				limit = 20
+			}
 			ctx, cancel := context.WithTimeout(
 				context.Background(),
 				5*time.Second,
@@ -95,6 +128,8 @@ func TestPostgresDishSearchNearby(t *testing.T) {
 				tt.radius,
 				tt.maxPrice,
 				tt.sortBy,
+				limit,
+				tt.offset,
 			)
 			if err != nil {
 				t.Fatalf("search nearby dishes: %v", err)

@@ -23,6 +23,8 @@ func TestSearchNearbyFiltersByBudget(t *testing.T) {
 		2000,
 		700,
 		"distance",
+		20,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("search nearby dishes: %v", err)
@@ -66,6 +68,8 @@ func TestSearchNearbyFiltersByDistance(t *testing.T) {
 		500,
 		1000,
 		"distance",
+		20,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("search nearby dishes: %v", err)
@@ -109,6 +113,8 @@ func TestSearchNearbyOrdersByPrice(t *testing.T) {
 		2000,
 		1000,
 		"price",
+		20,
+		0,
 	)
 	if err != nil {
 		t.Fatalf("search nearby dishes: %v", err)

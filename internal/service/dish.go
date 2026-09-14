@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sort"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/models"
@@ -30,7 +31,12 @@ func (s *DishService) SearchNearby(
 	radiusMeters float64,
 	maxPrice int,
 	sortBy string,
+	limit int,
+	offset int,
 ) ([]models.DishSearchResult, error) {
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, fmt.Errorf("invalid pagination")
+	}
 	restaurants, err := s.restaurantRepository.Nearby(
 		ctx,
 		latitude,
@@ -85,6 +91,16 @@ func (s *DishService) SearchNearby(
 			return results[i].DistanceMeters <
 				results[j].DistanceMeters
 		})
+	}
+
+	if offset >= len(results) {
+		return []models.DishSearchResult{}, nil
+	}
+
+	results = results[offset:]
+
+	if len(results) > limit {
+		results = results[:limit]
 	}
 
 	return results, nil

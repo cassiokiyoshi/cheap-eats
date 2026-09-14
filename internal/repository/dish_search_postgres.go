@@ -15,7 +15,12 @@ func (r *PostgresDishRepository) SearchNearby(
 	radiusMeters float64,
 	maxPrice int,
 	sortBy string,
+	limit int,
+	offset int,
 ) ([]models.DishSearchResult, error) {
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, fmt.Errorf("invalid pagination")
+	}
 	var orderBy string
 
 	switch sortBy {
@@ -57,7 +62,9 @@ func (r *PostgresDishRepository) SearchNearby(
 			  )::geography,
 			  $3
 		  )
-		ORDER BY ` + orderBy
+		ORDER BY ` + orderBy + `
+		LIMIT $5 OFFSET $6
+		`
 
 	rows, err := r.pool.Query(
 		ctx,
@@ -66,6 +73,8 @@ func (r *PostgresDishRepository) SearchNearby(
 		longitude,
 		radiusMeters,
 		maxPrice,
+		limit,
+		offset,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("search nearby dishes: %w", err)
