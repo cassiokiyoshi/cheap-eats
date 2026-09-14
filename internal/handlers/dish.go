@@ -53,7 +53,7 @@ func (h *DishHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 		id,
 	)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		input.RestaurantID,
 	)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		dish,
 	)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 

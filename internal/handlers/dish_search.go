@@ -141,7 +141,7 @@ func (h *DishSearchHandler) Nearby(
 	)
 
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 

@@ -25,7 +25,7 @@ func NewRestaurantHandler(
 func (h *RestaurantHandler) List(w http.ResponseWriter, r *http.Request) {
 	restaurants, err := h.repository.List(r.Context())
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (h *RestaurantHandler) Get(w http.ResponseWriter, r *http.Request) {
 		id,
 	)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *RestaurantHandler) Nearby(
 		radius,
 	)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		serverError(w, r, err)
 		return
 	}
 
