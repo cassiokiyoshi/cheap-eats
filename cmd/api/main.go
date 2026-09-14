@@ -2,10 +2,14 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/database"
 	"github.com/cassiokiyoshi/cheap-eats/internal/handlers"
@@ -15,16 +19,22 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	ctx := context.Background()
 
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		log.Fatal("DATABASE_URL is required")
+		return errors.New("DATABASE_URL is required")
 	}
 
 	databasePool, err := database.Open(ctx, databaseURL)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer databasePool.Close()
 
@@ -63,10 +73,54 @@ func main() {
 	router.Get("/api/restaurants/nearby", restaurantHandler.Nearby)
 	router.Get("/api/restaurants/{id}", restaurantHandler.Get)
 
-	address := ":8080"
-	fmt.Printf("Cheap Eats API running at http://localhost%s\n", address)
-
-	if err := http.ListenAndServe(address, router); err != nil {
-		log.Fatal(err)
+	server := &http.Server{
+		Addr:              ":8080",
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
+
+	stopContext, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
+
+	serverErrors := make(chan error, 1)
+
+	go func() {
+		log.Printf("Starting Cheap Eats API at http://localhost%s", server.Addr)
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-serverErrors:
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return fmt.Errorf("HTTP server: %w", err)
+
+	case <-stopContext.Done():
+		log.Println("Shutting down HTTP server...")
+	}
+
+	// Restore normal signal handling so a second Ctrl+C forces exit.
+	stop()
+
+	shutdownContext, cancel := context.WithTimeout(
+		context.Background(),
+		10*time.Second,
+	)
+	defer cancel()
+
+	if err := server.Shutdown(shutdownContext); err != nil {
+		// The grace period expired, or shutdown failed.
+		if closeErr := server.Close(); closeErr != nil {
+			log.Printf("Force-close HTTP server: %v", closeErr)
+		}
+		return fmt.Errorf("shutdown HTTP server: %w", err)
+	}
+
+	log.Println("HTTP server stopped")
+	return nil
 }
