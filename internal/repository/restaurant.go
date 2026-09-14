@@ -12,10 +12,12 @@ import (
 type RestaurantRepository struct {
 	mu          sync.RWMutex
 	restaurants []models.Restaurant
+	nextID      int64
 }
 
 func NewRestaurantRepository() *RestaurantRepository {
 	return &RestaurantRepository{
+		nextID: 3,
 		restaurants: []models.Restaurant{
 			{
 				ID:        1,
@@ -33,6 +35,21 @@ func NewRestaurantRepository() *RestaurantRepository {
 			},
 		},
 	}
+}
+
+func (r *RestaurantRepository) Create(
+	_ context.Context,
+	restaurant models.Restaurant,
+) (models.Restaurant, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	restaurant.ID = r.nextID
+	r.nextID++
+
+	r.restaurants = append(r.restaurants, restaurant)
+
+	return restaurant, nil
 }
 
 func (r *RestaurantRepository) List(

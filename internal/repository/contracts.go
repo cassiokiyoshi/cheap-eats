@@ -26,6 +26,11 @@ type DishStore interface {
 }
 
 type RestaurantStore interface {
+	Create(
+		ctx context.Context,
+		restaurant models.Restaurant,
+	) (models.Restaurant, error)
+
 	List(ctx context.Context) ([]models.Restaurant, error)
 
 	FindByID(

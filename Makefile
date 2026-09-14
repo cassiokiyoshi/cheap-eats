@@ -9,7 +9,7 @@ test:
 test-integration: db-up
 	@set -a; . ./.env; set +a; \
 		test -n "$$TEST_DATABASE_URL" || { echo "TEST_DATABASE_URL is required"; exit 1; }; \
-		go test -v -count=1 ./internal/repository -run '^TestPostgresDishSearchNearby$$'
+		go test -v -count=1 ./internal/repository -run '^TestPostgres'
 
 fmt:
 	go fmt ./...

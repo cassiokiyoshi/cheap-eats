@@ -72,6 +72,7 @@ func run() error {
 	router.Get("/api/restaurants", restaurantHandler.List)
 	router.Get("/api/restaurants/nearby", restaurantHandler.Nearby)
 	router.Get("/api/restaurants/{id}", restaurantHandler.Get)
+	router.Post("/api/restaurants", restaurantHandler.Create)
 
 	server := &http.Server{
 		Addr:              ":8080",

@@ -14,6 +14,38 @@ type PostgresRestaurantRepository struct {
 	pool *pgxpool.Pool
 }
 
+func (r *PostgresRestaurantRepository) Create(
+	ctx context.Context,
+	restaurant models.Restaurant,
+) (models.Restaurant, error) {
+	const query = `
+		INSERT INTO restaurants (name, address, location)
+		VALUES (
+			$1,
+			$2,
+			ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
+		)
+		RETURNING id
+	`
+
+	err := r.pool.QueryRow(
+		ctx,
+		query,
+		restaurant.Name,
+		restaurant.Address,
+		restaurant.Longitude,
+		restaurant.Latitude,
+	).Scan(&restaurant.ID)
+	if err != nil {
+		return models.Restaurant{}, fmt.Errorf(
+			"create restaurant: %w",
+			err,
+		)
+	}
+
+	return restaurant, nil
+}
+
 func NewPostgresRestaurantRepository(
 	pool *pgxpool.Pool,
 ) *PostgresRestaurantRepository {
