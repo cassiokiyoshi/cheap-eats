@@ -1,19 +1,31 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"github.com/cassiokiyoshi/cheap-eats/internal/service"
+	"github.com/cassiokiyoshi/cheap-eats/internal/models"
 )
 
+type DishSearcher interface {
+	SearchNearby(
+		ctx context.Context,
+		latitude float64,
+		longitude float64,
+		radiusMeters float64,
+		maxPrice int,
+		sortBy string,
+	) ([]models.DishSearchResult, error)
+}
+
 type DishSearchHandler struct {
-	service *service.DishService
+	service DishSearcher
 }
 
 func NewDishSearchHandler(
-	service *service.DishService,
+	service DishSearcher,
 ) *DishSearchHandler {
 	return &DishSearchHandler{
 		service: service,

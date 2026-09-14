@@ -10,7 +10,6 @@ import (
 	"github.com/cassiokiyoshi/cheap-eats/internal/database"
 	"github.com/cassiokiyoshi/cheap-eats/internal/handlers"
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
-	"github.com/cassiokiyoshi/cheap-eats/internal/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
@@ -47,11 +46,7 @@ func main() {
 		restaurantRepository,
 	)
 
-	dishService := service.NewDishService(
-		dishRepository,
-		restaurantRepository,
-	)
-	dishSearchHandler := handlers.NewDishSearchHandler(dishService)
+	dishSearchHandler := handlers.NewDishSearchHandler(dishRepository)
 
 	restaurantHandler := handlers.NewRestaurantHandler(
 		restaurantRepository,
