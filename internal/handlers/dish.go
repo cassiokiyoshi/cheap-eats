@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -98,10 +99,18 @@ type createDishInput struct {
 func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 	var input createDishInput
 
-	decoder := json.NewDecoder(r.Body)
-	decoder.DisallowUnknownFields()
+	if err := readJSON(w, r, &input); err != nil {
+		var sizeError *http.MaxBytesError
 
-	if err := decoder.Decode(&input); err != nil {
+		if errors.As(err, &sizeError) {
+			http.Error(
+				w,
+				"request body must not exceed 64 KiB",
+				http.StatusRequestEntityTooLarge,
+			)
+			return
+		}
+
 		http.Error(w, "invalid JSON body", http.StatusBadRequest)
 		return
 	}

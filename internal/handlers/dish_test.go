@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -62,5 +63,76 @@ func TestCreateDish(t *testing.T) {
 
 	if dish.RestaurantID != 1 {
 		t.Errorf("expected restaurant ID 1, got %d", dish.RestaurantID)
+	}
+}
+
+func TestCreateDishRejectsInvalidBody(t *testing.T) {
+	valid := `{"restaurant_id":1,"name":"Curry","price":900,"currency":"JPY"}`
+
+	tests := []struct {
+		name   string
+		body   string
+		status int
+	}{
+		{
+			name:   "empty body",
+			body:   "",
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "two JSON values",
+			body:   valid + ` {}`,
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "trailing garbage",
+			body:   valid + ` invalid`,
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "unknown field",
+			body:   `{"restaurant_id":1,"name":"Curry","price":900,"extra":true}`,
+			status: http.StatusBadRequest,
+		},
+		{
+			name:   "oversized body",
+			body:   valid + strings.Repeat(" ", 64*1024),
+			status: http.StatusRequestEntityTooLarge,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dishes := repository.NewDishRepository()
+			restaurants := repository.NewRestaurantRepository()
+			handler := NewDishHandler(dishes, restaurants)
+
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/api/dishes",
+				strings.NewReader(tt.body),
+			)
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+
+			handler.Create(response, request)
+
+			if response.Code != tt.status {
+				t.Fatalf(
+					"expected status %d, got %d: %s",
+					tt.status,
+					response.Code,
+					response.Body.String(),
+				)
+			}
+
+			saved, err := dishes.List(context.Background())
+			if err != nil {
+				t.Fatalf("list dishes: %v", err)
+			}
+			if len(saved) != 2 {
+				t.Errorf("rejected request changed dish count to %d", len(saved))
+			}
+		})
 	}
 }
