@@ -149,4 +149,18 @@ func (r *PostgresDishRepository) queryDishes(
 	return dishes, nil
 }
 
+func (r *PostgresDishRepository) ListByRestaurantID(
+	ctx context.Context,
+	restaurantID int64,
+) ([]models.Dish, error) {
+	const query = `
+		SELECT id, restaurant_id, name, price, currency
+		FROM dishes
+		WHERE restaurant_id = $1
+		ORDER BY id
+	`
+
+	return r.queryDishes(ctx, query, restaurantID)
+}
+
 var _ DishStore = (*PostgresDishRepository)(nil)

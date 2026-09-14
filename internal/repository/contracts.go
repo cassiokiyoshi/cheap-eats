@@ -7,6 +7,11 @@ import (
 )
 
 type DishStore interface {
+	Create(
+		ctx context.Context,
+		dish models.Dish,
+	) (models.Dish, error)
+
 	List(ctx context.Context) ([]models.Dish, error)
 
 	ListByMaxPrice(
@@ -14,15 +19,15 @@ type DishStore interface {
 		maxPrice int,
 	) ([]models.Dish, error)
 
+	ListByRestaurantID(
+		ctx context.Context,
+		restaurantID int64,
+	) ([]models.Dish, error)
+
 	FindByID(
 		ctx context.Context,
 		id int64,
 	) (models.Dish, bool, error)
-
-	Create(
-		ctx context.Context,
-		dish models.Dish,
-	) (models.Dish, error)
 }
 
 type RestaurantStore interface {

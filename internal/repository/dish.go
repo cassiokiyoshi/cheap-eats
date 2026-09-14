@@ -95,3 +95,21 @@ func (r *DishRepository) Create(
 
 	return dish, nil
 }
+
+func (r *DishRepository) ListByRestaurantID(
+	_ context.Context,
+	restaurantID int64,
+) ([]models.Dish, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	dishes := make([]models.Dish, 0)
+
+	for _, dish := range r.dishes {
+		if dish.RestaurantID == restaurantID {
+			dishes = append(dishes, dish)
+		}
+	}
+
+	return dishes, nil
+}
