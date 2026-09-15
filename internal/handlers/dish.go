@@ -118,6 +118,15 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 	input.Name = strings.TrimSpace(input.Name)
 	input.Currency = strings.ToUpper(strings.TrimSpace(input.Currency))
 
+	if input.Currency == "" {
+		input.Currency = "JPY"
+	}
+
+	if err := validateCurrency(input.Currency); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if input.Name == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
 		return
@@ -145,10 +154,6 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := validatePrice(input.Price); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-
-	if input.Currency == "" {
-		input.Currency = "JPY"
 	}
 
 	dish := models.Dish{

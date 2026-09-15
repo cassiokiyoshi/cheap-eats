@@ -141,3 +141,99 @@ func TestCreateDishRejectsInvalidBody(t *testing.T) {
 		})
 	}
 }
+
+func TestCreateDishCurrency(t *testing.T) {
+	tests := []struct {
+		name       string
+		currency   string
+		omit       bool
+		wantStatus int
+	}{
+		{"JPY", "JPY", false, 201},
+		{"lowercase", "jpy", false, 201},
+		{"surrounding spaces", " jpy ", false, 201},
+		{"blank defaults to JPY", "", false, 201},
+		{"omitted defaults to JPY", "", true, 201},
+		{"unsupported currency", "USD", false, 400},
+		{"misspelled currency", "JYP", false, 400},
+		{"too short", "JP", false, 400},
+		{"too long", "JPYY", false, 400},
+		{"numbers", "123", false, 400},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dishes := repository.NewDishRepository()
+			handler := NewDishHandler(
+				dishes,
+				repository.NewRestaurantRepository(),
+			)
+
+			input := map[string]any{
+				"restaurant_id": 1,
+				"name":          "Curry",
+				"price":         900,
+			}
+			if !tt.omit {
+				input["currency"] = tt.currency
+			}
+
+			body, err := json.Marshal(input)
+			if err != nil {
+				t.Fatalf("encode request: %v", err)
+			}
+
+			request := httptest.NewRequest(
+				http.MethodPost,
+				"/api/dishes",
+				strings.NewReader(string(body)),
+			)
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+
+			handler.Create(response, request)
+
+			if response.Code != tt.wantStatus {
+				t.Fatalf(
+					"expected status %d, got %d: %s",
+					tt.wantStatus,
+					response.Code,
+					response.Body.String(),
+				)
+			}
+
+			saved, err := dishes.List(context.Background())
+			if err != nil {
+				t.Fatalf("list dishes: %v", err)
+			}
+
+			if tt.wantStatus == http.StatusBadRequest {
+				if strings.TrimSpace(response.Body.String()) != "currency must be JPY" {
+					t.Errorf("unexpected error: %s", response.Body.String())
+				}
+				if len(saved) != 2 {
+					t.Error("invalid currency caused a dish to be saved")
+				}
+				return
+			}
+
+			var created models.Dish
+			if err := json.Unmarshal(response.Body.Bytes(), &created); err != nil {
+				t.Fatalf("decode response: %v", err)
+			}
+			if created.Currency != "JPY" {
+				t.Errorf("expected JPY, got %q", created.Currency)
+			}
+
+			stored, found, err := dishes.FindByID(context.Background(), created.ID)
+			if err != nil || !found || stored.Currency != "JPY" {
+				t.Fatalf(
+					"JPY was not saved correctly: found=%v, dish=%+v, err=%v",
+					found,
+					stored,
+					err,
+				)
+			}
+		})
+	}
+}

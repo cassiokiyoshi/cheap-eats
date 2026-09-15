@@ -12,3 +12,11 @@ func validatePrice(price int) error {
 
 	return nil
 }
+
+func validateCurrency(currency string) error {
+	if currency != "JPY" {
+		return errors.New("currency must be JPY")
+	}
+
+	return nil
+}

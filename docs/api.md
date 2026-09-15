@@ -111,10 +111,7 @@ Names are trimmed. Currency is trimmed and uppercased; omitted or blank currency
 defaults to `JPY`. A missing referenced restaurant returns `400`, not `404`.
 Success returns `201` with the created dish, including its generated ID.
 
-Current currency validation is incomplete: PostgreSQL requires three uppercase
-characters, but the handler does not fully validate currency codes. Some invalid
-values can therefore produce `500` rather than `400`; valid ISO codes are not
-checked against a registry. Use `JPY` for this MVP.
+Dish creation accepts only JPY after trimming and uppercasing. Omitted or blank currency defaults to JPY. Other values return 400 with currency must be JPY.
 
 ### Update a dish's price
 
