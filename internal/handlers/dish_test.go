@@ -99,6 +99,11 @@ func TestCreateDishRejectsInvalidBody(t *testing.T) {
 			body:   valid + strings.Repeat(" ", 64*1024),
 			status: http.StatusRequestEntityTooLarge,
 		},
+		{
+			name:   "price exceeds database limit",
+			body:   `{"restaurant_id":1,"name":"Curry","price":2147483648,"currency":"JPY"}`,
+			status: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {

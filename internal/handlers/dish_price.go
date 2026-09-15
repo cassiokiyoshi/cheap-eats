@@ -42,14 +42,8 @@ func (h *DishHandler) UpdatePrice(
 	}
 
 	// PostgreSQL INTEGER is a signed 32-bit integer.
-	const maxPrice = 2_147_483_647
-
-	if input.Price < 1 || input.Price > maxPrice {
-		http.Error(
-			w,
-			"price must be between 1 and 2147483647",
-			http.StatusBadRequest,
-		)
+	if err := validatePrice(input.Price); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 

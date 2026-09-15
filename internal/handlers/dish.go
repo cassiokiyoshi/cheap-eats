@@ -142,8 +142,8 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if input.Price <= 0 {
-		http.Error(w, "price must be greater than zero", http.StatusBadRequest)
+	if err := validatePrice(input.Price); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
