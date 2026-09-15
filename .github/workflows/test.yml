@@ -26,3 +26,58 @@ jobs:
 
       - name: Run tests
         run: make test
+
+  integration:
+    name: PostgreSQL integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      database:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_USER: cheap_eats
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: cheap_eats_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cheap_eats -d cheap_eats_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    env:
+      TEST_DATABASE_URL: postgres://cheap_eats:ci_test_password@localhost:5432/cheap_eats_test?sslmode=disable
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Create database schema
+        env:
+          DATABASE_CONTAINER: ${{ job.services.database.id }}
+        run: |
+          for migration in migrations/*.up.sql; do
+            docker exec -i "$DATABASE_CONTAINER" \
+              psql -X -v ON_ERROR_STOP=1 -U cheap_eats -d cheap_eats_test \
+              < "$migration"
+          done
+
+      - name: Seed test data
+        env:
+          DATABASE_CONTAINER: ${{ job.services.database.id }}
+        run: |
+          docker exec -i "$DATABASE_CONTAINER" \
+            psql -X -v ON_ERROR_STOP=1 -U cheap_eats -d cheap_eats_test \
+            < scripts/seed.sql
+
+      - name: Run integration tests
+        run: go test -v -count=1 ./internal/repository -run '^TestPostgres'
