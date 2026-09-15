@@ -226,6 +226,87 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			t.Errorf("updated_at did not advance: got %v", updatedAt)
 		}
 
+		// Verify the recorded price change.
+		var oldPrice, newPrice int
+		var currency string
+		var changedAt time.Time
+
+		err = pool.QueryRow(ctx, `
+			SELECT old_price, new_price, currency, changed_at
+			FROM dish_price_history
+			WHERE dish_id = $1
+			ORDER BY id DESC
+			LIMIT 1
+		`, original.ID).Scan(
+			&oldPrice,
+			&newPrice,
+			&currency,
+			&changedAt,
+		)
+		if err != nil {
+			t.Fatalf("read price history: %v", err)
+		}
+
+		if oldPrice != 900 || newPrice != 950 || currency != "JPY" {
+			t.Errorf(
+				"unexpected history: %d -> %d %s",
+				oldPrice,
+				newPrice,
+				currency,
+			)
+		}
+
+		if !changedAt.Equal(updatedAt) {
+			t.Errorf(
+				"history timestamp %v differs from dish timestamp %v",
+				changedAt,
+				updatedAt,
+			)
+		}
+
+		// Repeating the same price should not create another change.
+		repeated, found, err := dishStore.UpdatePrice(
+			ctx,
+			original.ID,
+			950,
+		)
+		if err != nil {
+			t.Fatalf("repeat price update: %v", err)
+		}
+		if !found || repeated != want {
+			t.Errorf(
+				"unexpected repeated update: found=%v, dish=%+v",
+				found,
+				repeated,
+			)
+		}
+
+		var historyCount int
+		err = pool.QueryRow(
+			ctx,
+			"SELECT COUNT(*) FROM dish_price_history WHERE dish_id = $1",
+			original.ID,
+		).Scan(&historyCount)
+		if err != nil {
+			t.Fatalf("count price history: %v", err)
+		}
+		if historyCount != 1 {
+			t.Errorf("expected 1 history entry, got %d", historyCount)
+		}
+
+		var repeatedUpdatedAt time.Time
+		err = pool.QueryRow(
+			ctx,
+			"SELECT updated_at FROM dishes WHERE id = $1",
+			original.ID,
+		).Scan(&repeatedUpdatedAt)
+		if err != nil {
+			t.Fatalf("read timestamp after repeated update: %v", err)
+		}
+		if !repeatedUpdatedAt.Equal(updatedAt) {
+			t.Error("same-price request changed updated_at")
+		}
+
 		// Delete only our test dish to obtain a known missing ID.
 		_, err = pool.Exec(
 			ctx,

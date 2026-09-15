@@ -168,16 +168,24 @@ func (r *PostgresDishRepository) UpdatePrice(
 	id int64,
 	price int,
 ) (models.Dish, bool, error) {
-	const query = `
-		UPDATE dishes
-		SET price = $2, updated_at = NOW()
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return models.Dish{}, false, fmt.Errorf(
+			"begin price update: %w", err,
+		)
+	}
+	defer tx.Rollback(ctx)
+
+	const findQuery = `
+		SELECT id, restaurant_id, name, price, currency
+		FROM dishes
 		WHERE id = $1
-		RETURNING id, restaurant_id, name, price, currency
+		FOR UPDATE
 	`
 
 	var dish models.Dish
 
-	err := r.pool.QueryRow(ctx, query, id, price).Scan(
+	err = tx.QueryRow(ctx, findQuery, id).Scan(
 		&dish.ID,
 		&dish.RestaurantID,
 		&dish.Name,
@@ -189,11 +197,56 @@ func (r *PostgresDishRepository) UpdatePrice(
 	}
 	if err != nil {
 		return models.Dish{}, false, fmt.Errorf(
-			"update dish price: %w",
-			err,
+			"lock dish for price update: %w", err,
 		)
 	}
 
+	// An unchanged price is successful but creates no history.
+	if dish.Price == price {
+		return dish, true, nil
+	}
+
+	const updateQuery = `
+		UPDATE dishes
+		SET price = $2, updated_at = NOW()
+		WHERE id = $1
+	`
+
+	_, err = tx.Exec(ctx, updateQuery, id, price)
+	if err != nil {
+		return models.Dish{}, false, fmt.Errorf(
+			"update dish price: %w", err,
+		)
+	}
+
+	const historyQuery = `
+		INSERT INTO dish_price_history (
+			dish_id, old_price, new_price, currency
+		)
+		VALUES ($1, $2, $3, $4)
+	`
+
+	_, err = tx.Exec(
+		ctx,
+		historyQuery,
+		id,
+		dish.Price,
+		price,
+		dish.Currency,
+	)
+	if err != nil {
+		return models.Dish{}, false, fmt.Errorf(
+			"record dish price history: %w", err,
+		)
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return models.Dish{}, false, fmt.Errorf(
+			"commit price update: %w", err,
+		)
+	}
+
+	dish.Price = price
 	return dish, true, nil
 }
 
