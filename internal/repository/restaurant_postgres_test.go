@@ -355,7 +355,7 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			t.Fatalf("create second dish: %v", err)
 		}
 
-		empty, err := dishStore.ListPriceHistory(ctx, first.ID)
+		empty, err := dishStore.ListPriceHistory(ctx, first.ID, 20, 0)
 		if err != nil {
 			t.Fatalf("read empty history: %v", err)
 		}
@@ -384,7 +384,7 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			}
 		}
 
-		history, err := dishStore.ListPriceHistory(ctx, first.ID)
+		history, err := dishStore.ListPriceHistory(ctx, first.ID, 20, 0)
 		if err != nil {
 			t.Fatalf("list price history: %v", err)
 		}
@@ -414,7 +414,63 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			t.Error("expected history in descending ID order")
 		}
 
-		otherHistory, err := dishStore.ListPriceHistory(ctx, second.ID)
+		pages := []struct {
+			name   string
+			limit  int
+			offset int
+			want   []models.DishPriceHistory
+		}{
+			{"first page", 1, 0, history[:1]},
+			{"second page", 1, 1, history[1:]},
+			{"past last page", 1, 2, []models.DishPriceHistory{}},
+			{"both entries", 2, 0, history},
+			{"maximum limit", 100, 0, history},
+		}
+
+		for _, page := range pages {
+			t.Run(page.name, func(t *testing.T) {
+				got, err := dishStore.ListPriceHistory(
+					ctx,
+					first.ID,
+					page.limit,
+					page.offset,
+				)
+				if err != nil {
+					t.Fatalf("read history page: %v", err)
+				}
+
+				if got == nil {
+					t.Fatal("expected a non-nil slice")
+				}
+				if len(got) != len(page.want) {
+					t.Fatalf(
+						"expected %d entries, got %d",
+						len(page.want),
+						len(got),
+					)
+				}
+
+				for i, entry := range got {
+					want := page.want[i]
+
+					if entry.ID != want.ID ||
+						entry.DishID != want.DishID ||
+						entry.OldPrice != want.OldPrice ||
+						entry.NewPrice != want.NewPrice ||
+						entry.Currency != want.Currency ||
+						!entry.ChangedAt.Equal(want.ChangedAt) {
+						t.Errorf(
+							"entry %d: expected %+v, got %+v",
+							i,
+							want,
+							entry,
+						)
+					}
+				}
+			})
+		}
+
+		otherHistory, err := dishStore.ListPriceHistory(ctx, second.ID, 20, 0)
 		if err != nil {
 			t.Fatalf("list second dish history: %v", err)
 		}

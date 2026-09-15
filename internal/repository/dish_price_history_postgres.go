@@ -10,7 +10,12 @@ import (
 func (r *PostgresDishRepository) ListPriceHistory(
 	ctx context.Context,
 	dishID int64,
+	limit int,
+	offset int,
 ) ([]models.DishPriceHistory, error) {
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, fmt.Errorf("invalid price history pagination")
+	}
 	const query = `
 		SELECT
 			id,
@@ -22,9 +27,10 @@ func (r *PostgresDishRepository) ListPriceHistory(
 		FROM dish_price_history
 		WHERE dish_id = $1
 		ORDER BY id DESC
+		LIMIT $2 OFFSET $3
 	`
 
-	rows, err := r.pool.Query(ctx, query, dishID)
+	rows, err := r.pool.Query(ctx, query, dishID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("list dish price history: %w", err)
 	}

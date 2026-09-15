@@ -21,6 +21,8 @@ type DishStore interface {
 	ListPriceHistory(
 		ctx context.Context,
 		dishID int64,
+		limit int,
+		offset int,
 	) ([]models.DishPriceHistory, error)
 
 	List(ctx context.Context) ([]models.Dish, error)

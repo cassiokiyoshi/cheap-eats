@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -160,16 +161,35 @@ func (r *DishRepository) UpdatePrice(
 func (r *DishRepository) ListPriceHistory(
 	_ context.Context,
 	dishID int64,
+	limit int,
+	offset int,
 ) ([]models.DishPriceHistory, error) {
+	if limit < 1 || limit > 100 || offset < 0 {
+		return nil, fmt.Errorf("invalid price history pagination")
+	}
+
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	history := make([]models.DishPriceHistory, 0)
+	skipped := 0
 
 	for i := len(r.priceHistory) - 1; i >= 0; i-- {
 		entry := r.priceHistory[i]
-		if entry.DishID == dishID {
-			history = append(history, entry)
+
+		if entry.DishID != dishID {
+			continue
+		}
+
+		if skipped < offset {
+			skipped++
+			continue
+		}
+
+		history = append(history, entry)
+
+		if len(history) == limit {
+			break
 		}
 	}
 

@@ -19,6 +19,36 @@ func (h *DishHandler) PriceHistory(
 		return
 	}
 
+	query := r.URL.Query()
+
+	limit := 20
+	if query.Has("limit") {
+		value, err := strconv.Atoi(query.Get("limit"))
+		if err != nil || value < 1 || value > 100 {
+			http.Error(
+				w,
+				"limit must be between 1 and 100",
+				http.StatusBadRequest,
+			)
+			return
+		}
+		limit = value
+	}
+
+	offset := 0
+	if query.Has("offset") {
+		value, err := strconv.Atoi(query.Get("offset"))
+		if err != nil || value < 0 {
+			http.Error(
+				w,
+				"offset must be a nonnegative integer",
+				http.StatusBadRequest,
+			)
+			return
+		}
+		offset = value
+	}
+
 	_, found, err := h.dishRepository.FindByID(r.Context(), id)
 	if err != nil {
 		serverError(w, r, err)
@@ -29,7 +59,12 @@ func (h *DishHandler) PriceHistory(
 		return
 	}
 
-	history, err := h.dishRepository.ListPriceHistory(r.Context(), id)
+	history, err := h.dishRepository.ListPriceHistory(
+		r.Context(),
+		id,
+		limit,
+		offset,
+	)
 	if err != nil {
 		serverError(w, r, err)
 		return
