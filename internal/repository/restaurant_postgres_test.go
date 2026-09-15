@@ -104,4 +104,55 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			saved.Longitude,
 		)
 	}
+
+	t.Run("list restaurant dishes", func(t *testing.T) {
+		dishStore := NewPostgresDishRepository(pool)
+
+		// A newly created restaurant should have no dishes.
+		empty, err := dishStore.ListByRestaurantID(ctx, created.ID)
+		if err != nil {
+			t.Fatalf("list empty restaurant dishes: %v", err)
+		}
+		if empty == nil || len(empty) != 0 {
+			t.Fatalf("expected a non-nil empty slice, got %#v", empty)
+		}
+
+		first, err := dishStore.Create(ctx, models.Dish{
+			RestaurantID: created.ID,
+			Name:         "Integration Test Curry",
+			Price:        900,
+			Currency:     "JPY",
+		})
+		if err != nil {
+			t.Fatalf("create first dish: %v", err)
+		}
+
+		second, err := dishStore.Create(ctx, models.Dish{
+			RestaurantID: created.ID,
+			Name:         "Integration Test Soup",
+			Price:        500,
+			Currency:     "JPY",
+		})
+		if err != nil {
+			t.Fatalf("create second dish: %v", err)
+		}
+
+		dishes, err := dishStore.ListByRestaurantID(ctx, created.ID)
+		if err != nil {
+			t.Fatalf("list restaurant dishes: %v", err)
+		}
+
+		if len(dishes) != 2 {
+			t.Fatalf("expected 2 dishes, got %d", len(dishes))
+		}
+
+		if dishes[0] != first || dishes[1] != second {
+			t.Errorf(
+				"expected dishes in ID order: %+v, %+v; got %+v",
+				first,
+				second,
+				dishes,
+			)
+		}
+	})
 }
