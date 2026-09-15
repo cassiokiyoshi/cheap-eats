@@ -3,14 +3,17 @@ package repository
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/cassiokiyoshi/cheap-eats/internal/models"
 )
 
 type DishRepository struct {
-	mu     sync.RWMutex
-	dishes []models.Dish
-	nextID int64
+	mu            sync.RWMutex
+	dishes        []models.Dish
+	nextID        int64
+	priceHistory  []models.DishPriceHistory
+	nextHistoryID int64
 }
 
 func NewDishRepository() *DishRepository {
@@ -31,7 +34,8 @@ func NewDishRepository() *DishRepository {
 				Currency:     "JPY",
 			},
 		},
-		nextID: 3,
+		nextID:        3,
+		nextHistoryID: 1,
 	}
 }
 
@@ -123,11 +127,51 @@ func (r *DishRepository) UpdatePrice(
 	defer r.mu.Unlock()
 
 	for i := range r.dishes {
-		if r.dishes[i].ID == id {
-			r.dishes[i].Price = price
-			return r.dishes[i], true, nil
+		if r.dishes[i].ID != id {
+			continue
 		}
+
+		dish := &r.dishes[i]
+
+		if dish.Price == price {
+			return *dish, true, nil
+		}
+
+		r.priceHistory = append(
+			r.priceHistory,
+			models.DishPriceHistory{
+				ID:        r.nextHistoryID,
+				DishID:    dish.ID,
+				OldPrice:  dish.Price,
+				NewPrice:  price,
+				Currency:  dish.Currency,
+				ChangedAt: time.Now().UTC(),
+			},
+		)
+		r.nextHistoryID++
+
+		dish.Price = price
+		return *dish, true, nil
 	}
 
 	return models.Dish{}, false, nil
+}
+
+func (r *DishRepository) ListPriceHistory(
+	_ context.Context,
+	dishID int64,
+) ([]models.DishPriceHistory, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	history := make([]models.DishPriceHistory, 0)
+
+	for i := len(r.priceHistory) - 1; i >= 0; i-- {
+		entry := r.priceHistory[i]
+		if entry.DishID == dishID {
+			history = append(history, entry)
+		}
+	}
+
+	return history, nil
 }

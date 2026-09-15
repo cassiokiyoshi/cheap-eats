@@ -326,4 +326,105 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 		}
 	})
 
+	t.Run("list price history", func(t *testing.T) {
+		ctx, cancel := context.WithTimeout(
+			context.Background(),
+			10*time.Second,
+		)
+		defer cancel()
+
+		dishStore := NewPostgresDishRepository(pool)
+
+		first, err := dishStore.Create(ctx, models.Dish{
+			RestaurantID: created.ID,
+			Name:         "History Test Curry",
+			Price:        800,
+			Currency:     "JPY",
+		})
+		if err != nil {
+			t.Fatalf("create first dish: %v", err)
+		}
+
+		second, err := dishStore.Create(ctx, models.Dish{
+			RestaurantID: created.ID,
+			Name:         "History Test Soup",
+			Price:        500,
+			Currency:     "JPY",
+		})
+		if err != nil {
+			t.Fatalf("create second dish: %v", err)
+		}
+
+		empty, err := dishStore.ListPriceHistory(ctx, first.ID)
+		if err != nil {
+			t.Fatalf("read empty history: %v", err)
+		}
+		if empty == nil || len(empty) != 0 {
+			t.Fatalf("expected non-nil empty history, got %#v", empty)
+		}
+
+		updates := []struct {
+			id    int64
+			price int
+		}{
+			{first.ID, 850},
+			{second.ID, 550},
+			{first.ID, 900},
+			{first.ID, 900},
+		}
+
+		for _, update := range updates {
+			_, found, err := dishStore.UpdatePrice(
+				ctx,
+				update.id,
+				update.price,
+			)
+			if err != nil || !found {
+				t.Fatalf("prepare history: found=%v, err=%v", found, err)
+			}
+		}
+
+		history, err := dishStore.ListPriceHistory(ctx, first.ID)
+		if err != nil {
+			t.Fatalf("list price history: %v", err)
+		}
+		if len(history) != 2 {
+			t.Fatalf("expected 2 history entries, got %d", len(history))
+		}
+
+		wantChanges := [][2]int{
+			{850, 900},
+			{800, 850},
+		}
+
+		for i, entry := range history {
+			if entry.DishID != first.ID || entry.Currency != "JPY" {
+				t.Errorf("unexpected history entry: %+v", entry)
+			}
+			if entry.OldPrice != wantChanges[i][0] ||
+				entry.NewPrice != wantChanges[i][1] {
+				t.Errorf("unexpected change at index %d: %+v", i, entry)
+			}
+			if entry.ID <= 0 || entry.ChangedAt.IsZero() {
+				t.Errorf("missing ID or timestamp: %+v", entry)
+			}
+		}
+
+		if history[0].ID <= history[1].ID {
+			t.Error("expected history in descending ID order")
+		}
+
+		otherHistory, err := dishStore.ListPriceHistory(ctx, second.ID)
+		if err != nil {
+			t.Fatalf("list second dish history: %v", err)
+		}
+		if len(otherHistory) != 1 {
+			t.Fatalf("expected 1 entry for second dish, got %d", len(otherHistory))
+		}
+		if otherHistory[0].DishID != second.ID ||
+			otherHistory[0].OldPrice != 500 ||
+			otherHistory[0].NewPrice != 550 {
+			t.Errorf("unexpected second dish history: %+v", otherHistory[0])
+		}
+	})
 }

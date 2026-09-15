@@ -18,6 +18,11 @@ type DishStore interface {
 		price int,
 	) (models.Dish, bool, error)
 
+	ListPriceHistory(
+		ctx context.Context,
+		dishID int64,
+	) ([]models.DishPriceHistory, error)
+
 	List(ctx context.Context) ([]models.Dish, error)
 
 	ListByMaxPrice(
