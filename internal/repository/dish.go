@@ -113,3 +113,21 @@ func (r *DishRepository) ListByRestaurantID(
 
 	return dishes, nil
 }
+
+func (r *DishRepository) UpdatePrice(
+	_ context.Context,
+	id int64,
+	price int,
+) (models.Dish, bool, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for i := range r.dishes {
+		if r.dishes[i].ID == id {
+			r.dishes[i].Price = price
+			return r.dishes[i], true, nil
+		}
+	}
+
+	return models.Dish{}, false, nil
+}

@@ -68,6 +68,7 @@ func run() error {
 	router.Get("/api/dishes/nearby", dishSearchHandler.Nearby)
 	router.Get("/api/dishes/{id}", dishHandler.Get)
 	router.Post("/api/dishes", dishHandler.Create)
+	router.Patch("/api/dishes/{id}/price", dishHandler.UpdatePrice)
 
 	router.Get("/api/restaurants", restaurantHandler.List)
 	router.Get("/api/restaurants/nearby", restaurantHandler.Nearby)

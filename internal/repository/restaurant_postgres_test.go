@@ -155,4 +155,94 @@ func TestPostgresRestaurantCreate(t *testing.T) {
 			)
 		}
 	})
+
+	t.Run("update dish price", func(t *testing.T) {
+		dishStore := NewPostgresDishRepository(pool)
+
+		original, err := dishStore.Create(ctx, models.Dish{
+			RestaurantID: created.ID,
+			Name:         "Price Update Test Curry",
+			Price:        900,
+			Currency:     "JPY",
+		})
+		if err != nil {
+			t.Fatalf("create test dish: %v", err)
+		}
+
+		// Set a known old timestamp so the test needs no sleep.
+		oldTime := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+
+		_, err = pool.Exec(
+			ctx,
+			"UPDATE dishes SET updated_at = $2 WHERE id = $1",
+			original.ID,
+			oldTime,
+		)
+		if err != nil {
+			t.Fatalf("set initial timestamp: %v", err)
+		}
+
+		updated, found, err := dishStore.UpdatePrice(
+			ctx,
+			original.ID,
+			950,
+		)
+		if err != nil {
+			t.Fatalf("update price: %v", err)
+		}
+		if !found {
+			t.Fatal("test dish was not found")
+		}
+
+		want := original
+		want.Price = 950
+
+		if updated != want {
+			t.Errorf("expected updated dish %+v, got %+v", want, updated)
+		}
+
+		saved, found, err := dishStore.FindByID(ctx, original.ID)
+		if err != nil {
+			t.Fatalf("read updated dish: %v", err)
+		}
+		if !found || saved != want {
+			t.Errorf(
+				"price was not saved correctly: found=%v, got=%+v",
+				found,
+				saved,
+			)
+		}
+
+		var updatedAt time.Time
+		err = pool.QueryRow(
+			ctx,
+			"SELECT updated_at FROM dishes WHERE id = $1",
+			original.ID,
+		).Scan(&updatedAt)
+		if err != nil {
+			t.Fatalf("read timestamp: %v", err)
+		}
+		if !updatedAt.After(oldTime) {
+			t.Errorf("updated_at did not advance: got %v", updatedAt)
+		}
+
+		// Delete only our test dish to obtain a known missing ID.
+		_, err = pool.Exec(
+			ctx,
+			"DELETE FROM dishes WHERE id = $1",
+			original.ID,
+		)
+		if err != nil {
+			t.Fatalf("delete test dish: %v", err)
+		}
+
+		_, found, err = dishStore.UpdatePrice(ctx, original.ID, 1000)
+		if err != nil {
+			t.Fatalf("update missing dish: %v", err)
+		}
+		if found {
+			t.Error("expected found=false for a deleted dish")
+		}
+	})
+
 }

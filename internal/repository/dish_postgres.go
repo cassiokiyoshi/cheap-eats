@@ -163,4 +163,38 @@ func (r *PostgresDishRepository) ListByRestaurantID(
 	return r.queryDishes(ctx, query, restaurantID)
 }
 
+func (r *PostgresDishRepository) UpdatePrice(
+	ctx context.Context,
+	id int64,
+	price int,
+) (models.Dish, bool, error) {
+	const query = `
+		UPDATE dishes
+		SET price = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING id, restaurant_id, name, price, currency
+	`
+
+	var dish models.Dish
+
+	err := r.pool.QueryRow(ctx, query, id, price).Scan(
+		&dish.ID,
+		&dish.RestaurantID,
+		&dish.Name,
+		&dish.Price,
+		&dish.Currency,
+	)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return models.Dish{}, false, nil
+	}
+	if err != nil {
+		return models.Dish{}, false, fmt.Errorf(
+			"update dish price: %w",
+			err,
+		)
+	}
+
+	return dish, true, nil
+}
+
 var _ DishStore = (*PostgresDishRepository)(nil)
