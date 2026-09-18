@@ -97,14 +97,3 @@ Consumer discovery should remain free. The strongest early revenue paths are:
 8. Seed one launch neighborhood with trustworthy dish and price data.
 9. Add community price verification.
 10. Add menu scanning and translation.
-
-## Collaboration preference
-
-Development should be guided and educational: provide the code, explain which files to create, describe each file's responsibility, and explain the meaning of important code. Do not modify application files unless explicitly requested.
-
-## Imported conversation references
-
-- `Start project with guided coding` — Codex task `01a0857e-bcee-7d03-82fb-be23ac4ba8d1`
-- `Summarize Cheap Eats stack` — Codex task `01a08324-1b9a-75b3-ba13-ec0d7b1642ce`
-- `Import Cheap Eats Conversations` — ChatGPT conversation `6aa08c2b-9c18-83e8-a13e-fcb844844dbc`
-
