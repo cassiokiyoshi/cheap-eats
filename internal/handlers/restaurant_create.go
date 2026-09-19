@@ -13,6 +13,8 @@ import (
 
 type createRestaurantInput struct {
 	Name      string   `json:"name"`
+	NameJA    *string  `json:"name_ja"`
+	NameEN    *string  `json:"name_en"`
 	Address   string   `json:"address"`
 	Latitude  *float64 `json:"latitude"`
 	Longitude *float64 `json:"longitude"`
@@ -44,6 +46,18 @@ func (h *RestaurantHandler) Create(
 
 	if input.Name == "" {
 		http.Error(w, "name is required", http.StatusBadRequest)
+		return
+	}
+
+	nameJA, err := normalizeOptionalName(input.NameJA, "name_ja")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	nameEN, err := normalizeOptionalName(input.NameEN, "name_en")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -79,6 +93,8 @@ func (h *RestaurantHandler) Create(
 
 	restaurant := models.Restaurant{
 		Name:      input.Name,
+		NameJA:    nameJA,
+		NameEN:    nameEN,
 		Address:   input.Address,
 		Latitude:  latitude,
 		Longitude: longitude,

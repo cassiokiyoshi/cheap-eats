@@ -52,14 +52,6 @@ export default function HomeScreen() {
             <Text style={styles.buttonText}>Filters {filtersOpen ? '⌃' : '⌄'}</Text>
           </Pressable>
         </View>
-        <Text style={styles.summary}>Within {radius} m · Up to {yen(budget)}</Text>
-        <View style={styles.sortRow}>
-          <View style={styles.options}>
-            <Choice label="Distance" selected={sort === 'distance'} onPress={() => { setSort('distance'); changePage(0); }} />
-            <Choice label="Price" selected={sort === 'price'} onPress={() => { setSort('price'); changePage(0); }} />
-          </View>
-          <Text style={styles.muted}>10 per page</Text>
-        </View>
         {filtersOpen && <View style={styles.filterPanel}>
           <Text style={styles.label}>Maximum price</Text>
           <View style={styles.options}>{[500, 800, 1000, 1500].map((value) =>
@@ -72,6 +64,13 @@ export default function HomeScreen() {
             <Choice label="Done" selected onPress={() => setFiltersOpen(false)} />
           </View>
         </View>}
+        <View style={styles.sortRow}>
+          <View style={styles.options}>
+            <Choice label="Distance" selected={sort === 'distance'} onPress={() => { setSort('distance'); changePage(0); }} />
+            <Choice label="Price" selected={sort === 'price'} onPress={() => { setSort('price'); changePage(0); }} />
+          </View>
+        </View>
+       <Text style={styles.summary}>Within {radius} m · Up to {yen(budget)}</Text>
       </View>
       <FlatList ref={list} data={results.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)} numColumns={2}
         keyExtractor={(dish) => String(dish.id)} style={styles.list} contentContainerStyle={styles.content} columnWrapperStyle={styles.columns}

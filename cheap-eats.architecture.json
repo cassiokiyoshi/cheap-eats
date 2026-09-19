@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Cheap Eats application architecture",
+    "output": "cheap-eats-architecture.html",
+    "quality_profile": "showcase",
+    "locale": "en",
+    "repository": {
+      "url": "https://github.com/cassiokiyoshi/cheap-eats",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "c94e5a32e837b3083cc49f8c38f92ae243ce7727"
+    },
+    "views": [
+      { "id": "request-path", "label": "Request path", "focus": ["mobile", "api", "repositories", "postgres"], "note": "Follow a mobile request through the Go API to PostgreSQL." },
+      { "id": "data-access", "label": "Data access", "focus": ["api", "repositories", "postgres"], "note": "See the repository contracts and PostgreSQL adapters behind the handlers." },
+      { "id": "schema", "label": "Schema lifecycle", "focus": ["migrations", "postgres"], "note": "Inspect the SQL migrations and seed data that define persistence." }
+    ]
+  },
+  "components": [
+    { "id": "mobile", "type": "frontend", "label": "Expo mobile app", "sublabel": "React Native + Expo", "tag": "mobile/src", "pos": [40, 310], "size": [160, 76], "sources": [{ "path": "mobile/src/app/_layout.tsx" }] },
+    { "id": "api", "type": "backend", "label": "Go HTTP API", "sublabel": "cmd/api + internal/handlers", "tag": "REST :8080", "pos": [280, 310], "size": [180, 76], "sources": [{ "path": "cmd/api/main.go", "line": 42, "end_line": 92 }] },
+    { "id": "repositories", "type": "backend", "label": "Repository adapters", "sublabel": "restaurant, dish, price history", "tag": "internal/repository", "pos": [560, 310], "size": [220, 76], "sources": [{ "path": "internal/repository/contracts.go" }, { "path": "internal/repository/dish_postgres.go" }, { "path": "internal/repository/restaurant_postgres.go" }] },
+    { "id": "postgres", "type": "database", "label": "PostgreSQL", "sublabel": "restaurants, dishes, price history", "tag": "DATABASE_URL", "pos": [1060, 310], "size": [200, 76], "sources": [{ "path": "internal/database/postgres.go" }] },
+    { "id": "migrations", "type": "cloud", "label": "Schema migrations", "sublabel": "migrations/*.sql + seed.sql", "tag": "PostGIS", "pos": [1060, 500], "size": [200, 76], "sources": [{ "path": "migrations/000001_create_restaurants_and_dishes.up.sql" }, { "path": "migrations/000002_create_dish_price_history.up.sql" }] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Go API + persistence", "wraps": ["api", "repositories", "postgres", "migrations"], "pad": 28 }
+  ],
+  "connections": [
+    { "id": "mobile-api", "from": "mobile", "to": "api", "label": "HTTP JSON", "variant": "emphasis" },
+    { "id": "api-repositories", "from": "api", "to": "repositories", "label": "store interfaces" },
+    { "id": "repositories-postgres", "from": "repositories", "to": "postgres", "label": "SQL via pgxpool" },
+    { "id": "migrations-postgres", "from": "migrations", "to": "postgres", "label": "schema + seed", "variant": "dashed" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Client", "items": ["Expo Router screens live under mobile/src/app", "Theme and reusable UI components are shared across tabs"] },
+    { "dot": "emerald", "title": "API", "items": ["Go handlers expose restaurant, dish, search, and price endpoints", "Chi routes are assembled in cmd/api/main.go"] },
+    { "dot": "violet", "title": "Persistence", "items": ["Repository adapters isolate PostgreSQL access", "SQL migrations define restaurant, dish, and price-history tables"] }
+  ]
+}

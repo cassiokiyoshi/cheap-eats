@@ -37,6 +37,26 @@ Never commit `.env` or copy its credentials into this guide.
 - Price filtering and sorting compare stored numbers without currency filtering
   or conversion. Use JPY data for meaningful comparisons in the current MVP.
 
+## Bilingual names
+
+Dishes and restaurants have three name fields:
+
+- `name`: required original name, preserved for compatibility.
+- `name_ja`: optional Japanese display name.
+- `name_en`: optional English display name.
+
+Creation endpoints accept both optional fields. Omitted fields and explicit
+`null` values are stored as NULL and returned as JSON null.
+
+Provided names are trimmed. Empty or whitespace-only values return 400:
+`name_ja must not be blank` or `name_en must not be blank`.
+Non-string, non-null values return 400 with `invalid JSON body`.
+
+Either display name can be supplied independently. The API does not currently
+translate names or verify their language or translation accuracy.
+
+Existing records remain untranslated until explicitly populated.
+
 ## Endpoint overview
 
 | Method | Path | Successful response |
@@ -68,7 +88,8 @@ This handler does not query PostgreSQL; it is not a database-readiness check.
 ```json
 {
   "id": 1,
-  "name": "Shoyu Ramen",
+  "name_ja": null,
+  "name_en": null,
   "price": 850,
   "currency": "JPY",
   "restaurant_id": 1
@@ -96,6 +117,25 @@ curl -i http://localhost:8080/api/dishes/1
 Returns `400` for an invalid ID or `404` with `dish not found` for a missing dish.
 
 ### Create a dish
+
+To supply bilingual display names, include `name_ja` and `name_en`.
+Replace `restaurant_id` with an existing restaurant's ID:
+
+```bash
+curl -i http://localhost:8080/api/dishes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "restaurant_id": 1,
+    "name": "Shoyu Ramen",
+    "name_ja": "醤油ラーメン",
+    "name_en": "Shoyu Ramen",
+    "price": 850,
+    "currency": "JPY"
+  }'
+```
+
+Restaurant creation accepts the same optional name fields alongside its
+existing required fields.
 
 This example writes to your development database. Replace `restaurant_id` with
 an existing restaurant's ID. Each successful request creates a new dish.
@@ -164,14 +204,16 @@ Example response:
   {
     "dish": {
       "id": 1,
-      "name": "Shoyu Ramen",
+      "name_ja": null,
+      "name_en": null,
       "price": 850,
       "currency": "JPY",
       "restaurant_id": 1
     },
     "restaurant": {
       "id": 1,
-      "name": "Tokyo Ramen",
+      "name_ja": null,
+      "name_en": null,
       "address": "Marunouchi, Tokyo",
       "latitude": 35.6812,
       "longitude": 139.7671
@@ -227,7 +269,8 @@ entries. Pagination limits response size; it does not restrict public access.
 ```json
 {
   "id": 1,
-  "name": "Tokyo Ramen",
+  "name_ja": null,
+  "name_en": null,
   "address": "Marunouchi, Tokyo",
   "latitude": 35.6812,
   "longitude": 139.7671

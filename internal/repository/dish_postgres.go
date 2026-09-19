@@ -26,7 +26,7 @@ func (r *PostgresDishRepository) List(
 	ctx context.Context,
 ) ([]models.Dish, error) {
 	const query = `
-		SELECT id, restaurant_id, name, price, currency
+		SELECT id, restaurant_id, name, name_ja, name_en, price, currency
 		FROM dishes
 		ORDER BY id
 	`
@@ -39,7 +39,7 @@ func (r *PostgresDishRepository) ListByMaxPrice(
 	maxPrice int,
 ) ([]models.Dish, error) {
 	const query = `
-		SELECT id, restaurant_id, name, price, currency
+		SELECT id, restaurant_id, name, name_ja, name_en, price, currency
 		FROM dishes
 		WHERE price <= $1
 		ORDER BY price, id
@@ -53,7 +53,7 @@ func (r *PostgresDishRepository) FindByID(
 	id int64,
 ) (models.Dish, bool, error) {
 	const query = `
-		SELECT id, restaurant_id, name, price, currency
+		SELECT id, restaurant_id, name, name_ja, name_en, price, currency
 		FROM dishes
 		WHERE id = $1
 	`
@@ -64,6 +64,8 @@ func (r *PostgresDishRepository) FindByID(
 		&dish.ID,
 		&dish.RestaurantID,
 		&dish.Name,
+		&dish.NameJA,
+		&dish.NameEN,
 		&dish.Price,
 		&dish.Currency,
 	)
@@ -88,10 +90,12 @@ func (r *PostgresDishRepository) Create(
 		INSERT INTO dishes (
 			restaurant_id,
 			name,
+			name_ja,
+			name_en,
 			price,
 			currency
 		)
-		VALUES ($1, $2, $3, $4)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 
@@ -100,6 +104,8 @@ func (r *PostgresDishRepository) Create(
 		query,
 		dish.RestaurantID,
 		dish.Name,
+		dish.NameJA,
+		dish.NameEN,
 		dish.Price,
 		dish.Currency,
 	).Scan(&dish.ID)
@@ -133,6 +139,8 @@ func (r *PostgresDishRepository) queryDishes(
 			&dish.ID,
 			&dish.RestaurantID,
 			&dish.Name,
+			&dish.NameJA,
+			&dish.NameEN,
 			&dish.Price,
 			&dish.Currency,
 		); err != nil {
@@ -154,7 +162,7 @@ func (r *PostgresDishRepository) ListByRestaurantID(
 	restaurantID int64,
 ) ([]models.Dish, error) {
 	const query = `
-		SELECT id, restaurant_id, name, price, currency
+		SELECT id, restaurant_id, name, name_ja, name_en, price, currency
 		FROM dishes
 		WHERE restaurant_id = $1
 		ORDER BY id
@@ -177,7 +185,7 @@ func (r *PostgresDishRepository) UpdatePrice(
 	defer tx.Rollback(ctx)
 
 	const findQuery = `
-		SELECT id, restaurant_id, name, price, currency
+		SELECT id, restaurant_id, name, name_ja, name_en, price, currency
 		FROM dishes
 		WHERE id = $1
 		FOR UPDATE
@@ -189,6 +197,8 @@ func (r *PostgresDishRepository) UpdatePrice(
 		&dish.ID,
 		&dish.RestaurantID,
 		&dish.Name,
+		&dish.NameJA,
+		&dish.NameEN,
 		&dish.Price,
 		&dish.Currency,
 	)

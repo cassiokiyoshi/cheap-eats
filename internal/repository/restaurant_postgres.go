@@ -19,11 +19,15 @@ func (r *PostgresRestaurantRepository) Create(
 	restaurant models.Restaurant,
 ) (models.Restaurant, error) {
 	const query = `
-		INSERT INTO restaurants (name, address, location)
+		INSERT INTO restaurants (
+			name, name_ja, name_en, address, location
+		)
 		VALUES (
 			$1,
 			$2,
-			ST_SetSRID(ST_MakePoint($3, $4), 4326)::geography
+			$3,
+			$4,
+			ST_SetSRID(ST_MakePoint($5, $6), 4326)::geography
 		)
 		RETURNING id
 	`
@@ -32,6 +36,8 @@ func (r *PostgresRestaurantRepository) Create(
 		ctx,
 		query,
 		restaurant.Name,
+		restaurant.NameJA,
+		restaurant.NameEN,
 		restaurant.Address,
 		restaurant.Longitude,
 		restaurant.Latitude,
@@ -61,6 +67,8 @@ func (r *PostgresRestaurantRepository) List(
 		SELECT
 			id,
 			name,
+			name_ja,
+			name_en,
 			address,
 			ST_Y(location::geometry),
 			ST_X(location::geometry)
@@ -82,6 +90,8 @@ func (r *PostgresRestaurantRepository) List(
 		if err := rows.Scan(
 			&restaurant.ID,
 			&restaurant.Name,
+			&restaurant.NameJA,
+			&restaurant.NameEN,
 			&restaurant.Address,
 			&restaurant.Latitude,
 			&restaurant.Longitude,
@@ -113,6 +123,8 @@ func (r *PostgresRestaurantRepository) FindByID(
 		SELECT
 			id,
 			name,
+			name_ja,
+			name_en,
 			address,
 			ST_Y(location::geometry),
 			ST_X(location::geometry)
@@ -125,6 +137,8 @@ func (r *PostgresRestaurantRepository) FindByID(
 	err := r.pool.QueryRow(ctx, query, id).Scan(
 		&restaurant.ID,
 		&restaurant.Name,
+		&restaurant.NameJA,
+		&restaurant.NameEN,
 		&restaurant.Address,
 		&restaurant.Latitude,
 		&restaurant.Longitude,
@@ -152,6 +166,8 @@ func (r *PostgresRestaurantRepository) Nearby(
 		SELECT
 			id,
 			name,
+			name_ja,
+			name_en,
 			address,
 			ST_Y(location::geometry),
 			ST_X(location::geometry),
@@ -199,6 +215,8 @@ func (r *PostgresRestaurantRepository) Nearby(
 		if err := rows.Scan(
 			&suggestion.ID,
 			&suggestion.Name,
+			&suggestion.NameJA,
+			&suggestion.NameEN,
 			&suggestion.Address,
 			&suggestion.Latitude,
 			&suggestion.Longitude,

@@ -90,10 +90,12 @@ func (h *DishHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 type createDishInput struct {
-	Name         string `json:"name"`
-	Price        int    `json:"price"`
-	Currency     string `json:"currency"`
-	RestaurantID int64  `json:"restaurant_id"`
+	Name         string  `json:"name"`
+	NameJA       *string `json:"name_ja"`
+	NameEN       *string `json:"name_en"`
+	Price        int     `json:"price"`
+	Currency     string  `json:"currency"`
+	RestaurantID int64   `json:"restaurant_id"`
 }
 
 func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -132,6 +134,18 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	nameJA, err := normalizeOptionalName(input.NameJA, "name_ja")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	nameEN, err := normalizeOptionalName(input.NameEN, "name_en")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	if input.RestaurantID < 1 {
 		http.Error(w, "restaurant_id is required", http.StatusBadRequest)
 		return
@@ -158,6 +172,8 @@ func (h *DishHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	dish := models.Dish{
 		Name:         input.Name,
+		NameJA:       nameJA,
+		NameEN:       nameEN,
 		Price:        input.Price,
 		Currency:     input.Currency,
 		RestaurantID: input.RestaurantID,
