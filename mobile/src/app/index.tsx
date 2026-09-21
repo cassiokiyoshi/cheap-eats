@@ -3,8 +3,21 @@ import { fetchNearbyDishes } from '@/api/dishes';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FilterSheet } from '@/components/filter-sheet';
+import { router } from 'expo-router';
+import type { ImageSourcePropType } from 'react-native';
+import { DishPhoto } from '@/components/dish-photo';
+import { getDemoDishImage } from '@/constants/demo-images';
 
-type Dish = { id: number; japanese: string; english: string; restaurant: string; price: number; distance: number };
+type Dish = {
+  id: number;
+  japanese: string;
+  english: string;
+  restaurant: string;
+  price: number;
+  distance: number;
+  image?: ImageSourcePropType;
+  isDemo: boolean;
+};
 
 const yen = (value: number) => `¥${value.toLocaleString('en-US')}`;
 const PAGE_SIZE = 10;
@@ -92,6 +105,11 @@ export default function HomeScreen() {
               .join('\n'),
             price: result.dish.price,
             distance: result.distance_meters,
+            image: getDemoDishImage(
+              result.restaurant.name,
+              result.dish.name_en,
+            ),
+            isDemo: result.restaurant.name.startsWith('[DEMO] '),
           };
         });
 
@@ -154,18 +172,48 @@ export default function HomeScreen() {
       </View>
       <FlatList ref={list} data={results} numColumns={2}
         keyExtractor={(dish) => String(dish.id)} style={styles.list} contentContainerStyle={styles.content} columnWrapperStyle={styles.columns}
-        renderItem={({ item }) => <View style={styles.card}>
-          <View style={styles.photo} accessibilityLabel="Dish photo placeholder">
-            <Text style={styles.photoMark}>写真</Text><Text style={styles.photoLabel}>PHOTO PREVIEW</Text>
-          </View>
-          <View style={styles.cardBody}>
-            <View style={styles.nameRow}><Text style={styles.japanese}>{item.japanese}</Text><Text style={styles.price}>{yen(item.price)}</Text></View>
-            {item.english !== '' && (
-              <Text style={styles.english}>{item.english}</Text>
-            )}
-            <View style={styles.metaRow}><Text style={styles.restaurant}>{item.restaurant}</Text><Text style={styles.distance}>{item.distance} m</Text></View>
-          </View>
-        </View>}
+        renderItem={({ item }) => (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`View ${item.english || item.japanese}`}
+            onPress={() =>
+              router.push({
+                pathname: '/dishes/[id]',
+                params: { id: String(item.id) },
+              })
+            }
+            style={({ pressed }) => [
+              styles.card,
+              pressed && styles.pressed,
+            ]}
+          >
+            <DishPhoto
+              source={item.image}
+              label={item.english || item.japanese}
+            />
+
+            <View style={styles.cardBody}>
+              <View style={styles.nameRow}>
+                <Text style={styles.japanese}>{item.japanese}</Text>
+                <Text style={styles.price}>{yen(item.price)}</Text>
+              </View>
+
+              {item.english !== '' && (
+                <Text style={styles.english}>{item.english}</Text>
+              )}
+
+              <View style={styles.metaRow}>
+                <Text style={styles.restaurant}>{item.restaurant}</Text>
+                <Text style={styles.distance}>{item.distance} m</Text>
+              </View>
+              {item.isDemo && (
+                <Text style={{ color: '#777777', fontSize: 10, marginTop: 4 }}>
+                  Fictional demo restaurant
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        )}
                 ListEmptyComponent={
           <View style={styles.empty}>
             {loading ? (

@@ -76,3 +76,51 @@ export async function fetchNearbyDishes(
 
   return data as NearbyDish[];
 }
+
+async function fetchDetail<T>(
+  path: string,
+  label: string,
+  signal?: AbortSignal,
+): Promise<T> {
+  const baseURL = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+  if (!baseURL) {
+    throw new Error('EXPO_PUBLIC_API_URL is not configured.');
+  }
+
+  const response = await fetch(
+    `${baseURL.replace(/\/+$/, '')}${path}`,
+    {
+      headers: { Accept: 'application/json' },
+      signal,
+    },
+  );
+
+  if (response.status === 404) {
+    throw new Error(`${label} not found.`);
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `Could not load ${label.toLowerCase()} (HTTP ${response.status}).`,
+    );
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export function fetchDish(id: string, signal?: AbortSignal) {
+  return fetchDetail<Dish>(
+    `/api/dishes/${encodeURIComponent(id)}`,
+    'Dish',
+    signal,
+  );
+}
+
+export function fetchRestaurant(id: number, signal?: AbortSignal) {
+  return fetchDetail<Restaurant>(
+    `/api/restaurants/${id}`,
+    'Restaurant',
+    signal,
+  );
+}
