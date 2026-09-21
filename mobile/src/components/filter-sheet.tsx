@@ -31,20 +31,47 @@ export function FilterSheet({
 }: Props) {
   const [draftBudget, setDraftBudget] = useState(budget);
   const [draftRadius, setDraftRadius] = useState(radius);
-  const translateY = useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
+  const translateY = useRef(new Animated.Value(height)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
   const closing = useRef(false);
+  const opened = useRef(false);
+
+  const show = useCallback(() => {
+    if (opened.current || closing.current) return;
+    opened.current = true;
+
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 280,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 1,
+        duration: 220,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start();
+  }, [translateY, backdropOpacity]);
 
   const dismiss = useCallback((afterClose?: () => void) => {
     if (closing.current) return;
     closing.current = true;
 
-    Animated.timing(translateY, {
-      toValue: height,
-      duration: 250,
-      useNativeDriver: Platform.OS !== 'web',
-    }).start(({ finished }) => {
+    Animated.parallel([
+      Animated.timing(translateY, {
+        toValue: height,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: Platform.OS !== 'web',
+      }),
+    ]).start(({ finished }) => {
       if (finished) {
         if (afterClose) {
           afterClose();
@@ -55,7 +82,7 @@ export function FilterSheet({
         closing.current = false;
       }
     });
-  }, [height, onClose, translateY]);
+  }, [height, onClose, translateY, backdropOpacity]);
 
   const panResponder = useMemo(() => {
     let moved = false;
@@ -113,16 +140,21 @@ export function FilterSheet({
     <Modal
       visible
       transparent
-      animationType="slide"
+      animationType="none"
+      onShow={show}
       onRequestClose={() => dismiss()}
     >
       <View style={styles.overlay}>
-        <Pressable
-          style={styles.backdrop}
-          accessibilityRole="button"
-          accessibilityLabel="Close filters without applying"
-          onPress={() => dismiss()}
-        />
+        <Animated.View
+          style={[styles.backdrop, { opacity: backdropOpacity }]}
+        >
+          <Pressable
+            style={{ flex: 1 }}
+            accessibilityRole="button"
+            accessibilityLabel="Close filters without applying"
+            onPress={() => dismiss()}
+          />
+        </Animated.View>
 
         <Animated.View
           accessibilityViewIsModal

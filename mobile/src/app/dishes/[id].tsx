@@ -133,10 +133,6 @@ export default function DishDetailsScreen() {
           >
             <Text style={styles.backText}>‹ Back</Text>
           </Pressable>
-
-          <Text accessibilityRole="header" style={styles.headerTitle}>
-            Dish details
-          </Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.content}>
