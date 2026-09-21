@@ -1,23 +1,10 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { fetchNearbyDishes } from '@/api/dishes';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 type Dish = { id: number; japanese: string; english: string; restaurant: string; price: number; distance: number };
-// Fictional preview data. No API or device location is used yet.
-const dishes: Dish[] = [
-  { id: 1, japanese: 'たこ焼き 8個', english: 'Takoyaki · 8 pcs', restaurant: 'Takoyaki Taro', price: 500, distance: 90 },
-  { id: 2, japanese: '醤油ラーメン', english: 'Shoyu Ramen', restaurant: 'Yamada Noodles', price: 850, distance: 150 },
-  { id: 3, japanese: '味噌ラーメン', english: 'Miso Ramen', restaurant: 'Yamada Noodles', price: 900, distance: 150 },
-  { id: 4, japanese: 'チャーシュー丼', english: 'Chashu Rice Bowl', restaurant: 'Bowl Kitchen', price: 600, distance: 180 },
-  { id: 5, japanese: '餃子 6個', english: 'Gyoza · 6 pcs', restaurant: 'Gyoza House', price: 450, distance: 220 },
-  { id: 6, japanese: 'ビーフカレー', english: 'Beef Curry Rice', restaurant: 'Curry Corner', price: 800, distance: 250 },
-  { id: 7, japanese: 'かけうどん', english: 'Udon Noodles', restaurant: 'Udon Corner', price: 550, distance: 260 },
-  { id: 8, japanese: '親子丼', english: 'Chicken & Egg Bowl', restaurant: 'Bowl Kitchen', price: 780, distance: 270 },
-  { id: 9, japanese: 'おにぎりセット', english: 'Onigiri Set', restaurant: 'Rice & Co.', price: 480, distance: 280 },
-  { id: 10, japanese: '焼き魚定食', english: 'Grilled Fish Set', restaurant: 'Lunch House', price: 980, distance: 290 },
-  { id: 11, japanese: 'ざるそば', english: 'Cold Soba', restaurant: 'Soba House', price: 700, distance: 295 },
-  { id: 12, japanese: 'チキンカレー', english: 'Chicken Curry', restaurant: 'Curry Corner', price: 900, distance: 300 },
-];
+
 const yen = (value: number) => `¥${value.toLocaleString('en-US')}`;
 const PAGE_SIZE = 10;
 
@@ -34,13 +21,105 @@ export default function HomeScreen() {
   const [radius, setRadius] = useState(300);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [page, setPage] = useState(0);
+
+  const [results, setResults] = useState<Dish[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [hasNext, setHasNext] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+
   const list = useRef<FlatList<Dish>>(null);
-  const results = dishes.filter((dish) => dish.price <= budget && dish.distance <= radius)
-    .sort((a, b) => sort === 'distance'
-      ? a.distance - b.distance || a.price - b.price || a.id - b.id
-      : a.price - b.price || a.distance - b.distance || a.id - b.id);
-  const pageCount = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
-  function changePage(next: number) { setPage(next); list.current?.scrollToOffset({ offset: 0, animated: true }); }
+
+  function changePage(next: number) {
+    setPage(next);
+    list.current?.scrollToOffset({ offset: 0, animated: true });
+  }
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    let timedOut = false;
+
+    setLoading(true);
+    setError(null);
+    setResults([]);
+    setHasNext(false);
+
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, 10000);
+
+    async function loadDishes() {
+      try {
+        const data = await fetchNearbyDishes(
+          {
+            latitude: 35.6812,
+            longitude: 139.7671,
+            radius,
+            maxPrice: budget,
+            sort,
+            limit: PAGE_SIZE + 1,
+            offset: page * PAGE_SIZE,
+          },
+          controller.signal,
+        );
+
+        if (!active) return;
+
+        const cards: Dish[] = data.slice(0, PAGE_SIZE).map((result) => {
+          const dishName = result.dish.name_ja ?? result.dish.name;
+          const restaurantName =
+            result.restaurant.name_ja ?? result.restaurant.name;
+
+          const restaurantEnglish = result.restaurant.name_en;
+
+          return {
+            id: result.dish.id,
+            japanese: dishName,
+            english:
+              result.dish.name_en && result.dish.name_en !== dishName
+                ? result.dish.name_en
+                : '',
+            restaurant: [
+              restaurantName,
+              restaurantEnglish !== restaurantName
+                ? restaurantEnglish
+                : null,
+            ]
+              .filter(Boolean)
+              .join('\n'),
+            price: result.dish.price,
+            distance: result.distance_meters,
+          };
+        });
+
+        setResults(cards);
+        setHasNext(data.length > PAGE_SIZE);
+      } catch (cause) {
+        if (!active) return;
+
+        setError(
+          timedOut
+            ? 'The request timed out. Please try again.'
+            : cause instanceof Error
+              ? cause.message
+              : 'Could not load nearby dishes.',
+        );
+      } finally {
+        clearTimeout(timeout);
+        if (active) setLoading(false);
+      }
+    }
+
+    void loadDishes();
+
+    return () => {
+      active = false;
+      clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [sort, budget, radius, page, retryCount]);
 
   return <SafeAreaView style={styles.screen}>
     <View style={styles.container}>
@@ -72,7 +151,7 @@ export default function HomeScreen() {
         </View>
        <Text style={styles.summary}>Within {radius} m · Up to {yen(budget)}</Text>
       </View>
-      <FlatList ref={list} data={results.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)} numColumns={2}
+      <FlatList ref={list} data={results} numColumns={2}
         keyExtractor={(dish) => String(dish.id)} style={styles.list} contentContainerStyle={styles.content} columnWrapperStyle={styles.columns}
         renderItem={({ item }) => <View style={styles.card}>
           <View style={styles.photo} accessibilityLabel="Dish photo placeholder">
@@ -80,19 +159,57 @@ export default function HomeScreen() {
           </View>
           <View style={styles.cardBody}>
             <View style={styles.nameRow}><Text style={styles.japanese}>{item.japanese}</Text><Text style={styles.price}>{yen(item.price)}</Text></View>
-            <Text style={styles.english}>{item.english}</Text>
+            {item.english !== '' && (
+              <Text style={styles.english}>{item.english}</Text>
+            )}
             <View style={styles.metaRow}><Text style={styles.restaurant}>{item.restaurant}</Text><Text style={styles.distance}>{item.distance} m</Text></View>
           </View>
         </View>}
-        ListEmptyComponent={<View style={styles.empty}><Text style={styles.label}>No dishes in this range</Text><Text style={styles.summary}>Try a higher budget or a wider radius.</Text></View>}
-        ListFooterComponent={<View style={styles.footer}>
-          <View style={styles.pagination}>
-            <Choice label="Previous" disabled={page === 0} onPress={() => changePage(page - 1)} />
-            <Text style={styles.muted}>Page {page + 1} of {pageCount}</Text>
-            <Choice label="Next" disabled={page + 1 >= pageCount} onPress={() => changePage(page + 1)} />
+                ListEmptyComponent={
+          <View style={styles.empty}>
+            {loading ? (
+              <Text style={styles.label}>Loading dishes…</Text>
+            ) : error ? (
+              <>
+                <Text accessibilityRole="alert" style={styles.label}>
+                  Could not load dishes
+                </Text>
+                <Text style={styles.summary}>{error}</Text>
+                <Choice
+                  label="Retry"
+                  onPress={() => setRetryCount((value) => value + 1)}
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>No dishes in this range</Text>
+                <Text style={styles.summary}>
+                  Try a higher budget or a wider radius.
+                </Text>
+              </>
+            )}
           </View>
-          <Text style={styles.preview}>Design preview · Sample dishes and distances</Text>
-        </View>} />
+        }
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <View style={styles.pagination}>
+              <Choice
+                label="Previous"
+                disabled={loading || page === 0}
+                onPress={() => changePage(page - 1)}
+              />
+              <Text style={styles.muted}>Page {page + 1}</Text>
+              <Choice
+                label="Next"
+                disabled={loading || error !== null || !hasNext}
+                onPress={() => changePage(page + 1)}
+              />
+            </View>
+            <Text style={styles.preview}>
+              Development preview · Distances from Tokyo Station
+            </Text>
+          </View>
+        } />
     </View>
   </SafeAreaView>;
 }

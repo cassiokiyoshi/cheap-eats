@@ -16,6 +16,7 @@ import (
 	"github.com/cassiokiyoshi/cheap-eats/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -44,6 +45,23 @@ func run() error {
 
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
+
+	router.Use(cors.Handler(cors.Options{
+		AllowedOrigins: []string{
+			"http://localhost:8081",
+			"http://127.0.0.1:8081",
+		},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodOptions,
+		},
+		AllowedHeaders: []string{
+			"Accept",
+			"Content-Type",
+		},
+		AllowCredentials: false,
+		MaxAge:           300,
+	}))
 
 	dishRepository :=
 		repository.NewPostgresDishRepository(databasePool)
