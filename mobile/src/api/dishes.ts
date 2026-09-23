@@ -136,10 +136,17 @@ export type DishPriceChange = {
 
 export async function fetchDishPriceHistory(
   dishId: number,
+  limit: number,
+  offset: number,
   signal?: AbortSignal,
 ): Promise<DishPriceChange[]> {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
   const data = await fetchDetail<unknown>(
-    `/api/dishes/${dishId}/price-history?limit=20&offset=0`,
+    `/api/dishes/${dishId}/price-history?${params.toString()}`,
     'Price history',
     signal,
   );

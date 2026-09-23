@@ -6,6 +6,8 @@ import {
   type DishPriceChange,
 } from '@/api/dishes';
 
+const PAGE_SIZE = 5;
+
 const yen = (value: number) =>
   `¥${value.toLocaleString('en-US')}`;
 
@@ -21,6 +23,8 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [hasOlder, setHasOlder] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -29,6 +33,7 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
 
     setLoading(true);
     setError(null);
+    setHasOlder(false);
     setHistory([]);
 
     const timeout = setTimeout(() => {
@@ -40,10 +45,15 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
       try {
         const changes = await fetchDishPriceHistory(
           dishId,
+          PAGE_SIZE + 1,
+          page * PAGE_SIZE,
           controller.signal,
         );
 
-        if (active) setHistory(changes);
+        if (active) {
+          setHistory(changes.slice(0, PAGE_SIZE));
+          setHasOlder(changes.length > PAGE_SIZE);
+        }
       } catch (cause) {
         if (!active) return;
 
@@ -67,7 +77,7 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [dishId, retryCount]);
+  }, [dishId, page, retryCount]);
 
   return (
     <View style={styles.section}>
@@ -97,12 +107,14 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
           </>
         ) : history.length === 0 ? (
           <Text style={styles.muted}>
-            No price changes recorded yet.
+            {page === 0
+            ? 'No price changes recorded yet.'
+            : 'No changes on this page.'}
           </Text>
         ) : (
           <>
             <Text style={styles.muted}>
-              Latest recorded changes · Dates in Tokyo time
+              Recorded changes · Newest first · Tokyo time
             </Text>
 
             {history.map((change) => {
@@ -139,14 +151,45 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
                 </View>
               );
             })}
-
-            {history.length === 20 && (
-              <Text style={styles.muted}>
-                Showing the latest 20 changes.
-              </Text>
-            )}
           </>
         )}
+        {(page > 0 || hasOlder) && (
+        <View style={styles.pagination}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Show newer price changes"
+            accessibilityState={{ disabled: loading || page === 0 }}
+            disabled={loading || page === 0}
+            onPress={() => setPage((value) => Math.max(0, value - 1))}
+            style={({ pressed }) => [
+              styles.retry,
+              (loading || page === 0) && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.retryText}>Newer</Text>
+          </Pressable>
+
+          <Text style={styles.muted}>Page {page + 1}</Text>
+
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Show older price changes"
+            accessibilityState={{
+              disabled: loading || Boolean(error) || !hasOlder,
+            }}
+            disabled={loading || Boolean(error) || !hasOlder}
+            onPress={() => setPage((value) => value + 1)}
+            style={({ pressed }) => [
+              styles.retry,
+              (loading || Boolean(error) || !hasOlder) && styles.disabled,
+              pressed && styles.pressed,
+            ]}
+          >
+            <Text style={styles.retryText}>Older</Text>
+          </Pressable>
+        </View>
+      )}
       </View>
     </View>
   );
@@ -216,5 +259,16 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.6,
+  },
+  pagination: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 8,
+  },
+  disabled: {
+    opacity: 0.35,
   },
 });
