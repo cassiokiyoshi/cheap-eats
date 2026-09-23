@@ -101,8 +101,12 @@ func run() error {
 		dishHandler.ListByRestaurant,
 	)
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 	server := &http.Server{
-		Addr:              ":8080",
+		Addr:              ":" + port,
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
