@@ -1,4 +1,5 @@
 import { DishPhoto } from '@/components/dish-photo';
+import { DishPriceHistory } from '@/components/dish-price-history';
 import { getDemoDishImage } from '@/constants/demo-images';
 import { useEffect, useState } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -241,6 +242,10 @@ export default function DishDetailsScreen() {
                     </Text>
                   )}
                 </View>
+                <DishPriceHistory
+                  key={details.dish.id}
+                  dishId={details.dish.id}
+                />
               </View>
             </>
           ) : null}

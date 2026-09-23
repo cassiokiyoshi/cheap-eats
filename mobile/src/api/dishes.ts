@@ -124,3 +124,29 @@ export function fetchRestaurant(id: number, signal?: AbortSignal) {
     signal,
   );
 }
+
+export type DishPriceChange = {
+  id: number;
+  dish_id: number;
+  old_price: number;
+  new_price: number;
+  currency: string;
+  changed_at: string;
+};
+
+export async function fetchDishPriceHistory(
+  dishId: number,
+  signal?: AbortSignal,
+): Promise<DishPriceChange[]> {
+  const data = await fetchDetail<unknown>(
+    `/api/dishes/${dishId}/price-history?limit=20&offset=0`,
+    'Price history',
+    signal,
+  );
+
+  if (!Array.isArray(data)) {
+    throw new Error('The API returned an unexpected price history.');
+  }
+
+  return data as DishPriceChange[];
+}
