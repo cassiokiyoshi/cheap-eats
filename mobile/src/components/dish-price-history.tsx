@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { PriceHistoryChart } from '@/components/price-history-chart';
 
 import {
   fetchDishPriceHistory,
@@ -113,6 +114,8 @@ export function DishPriceHistory({ dishId }: { dishId: number }) {
           </Text>
         ) : (
           <>
+            <PriceHistoryChart history={history} />
+
             <Text style={styles.muted}>
               Recorded changes · Newest first · Tokyo time
             </Text>
