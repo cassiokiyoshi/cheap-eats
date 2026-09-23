@@ -3,10 +3,13 @@ BEGIN;
 -- Protect against accidentally seeding the integration-test database.
 DO $$
 BEGIN
-    IF current_database() <> 'cheap_eats' THEN
+    IF NOT (
+        (current_database() = 'cheap_eats' AND current_schema() = 'public')
+        OR current_schema() = 'cheap_eats'
+    ) THEN
         RAISE EXCEPTION
-            'Demo seed must run against cheap_eats, not %',
-            current_database();
+            'Demo seed requires the local cheap_eats database or cheap_eats schema; got %.%',
+            current_database(), current_schema();
     END IF;
 END
 $$;
