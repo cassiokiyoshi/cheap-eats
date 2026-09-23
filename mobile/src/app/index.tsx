@@ -7,6 +7,7 @@ import { router } from 'expo-router';
 import type { ImageSourcePropType } from 'react-native';
 import { DishPhoto } from '@/components/dish-photo';
 import { getDemoDishImage } from '@/constants/demo-images';
+import * as Location from 'expo-location';
 
 type Dish = {
   id: number;
@@ -21,6 +22,10 @@ type Dish = {
 
 const yen = (value: number) => `¥${value.toLocaleString('en-US')}`;
 const PAGE_SIZE = 10;
+const TOKYO_STATION = {
+  latitude: 35.6812,
+  longitude: 139.7671,
+};
 
 function Choice({ label, selected = false, disabled = false, onPress }: { label: string; selected?: boolean; disabled?: boolean; onPress: () => void }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ selected, disabled }} disabled={disabled} onPress={onPress}
@@ -42,11 +47,126 @@ export default function HomeScreen() {
   const [hasNext, setHasNext] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
+  const [searchLocation, setSearchLocation] = useState(TOKYO_STATION);
+  const [usingDeviceLocation, setUsingDeviceLocation] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  const locationRequest = useRef(0);
+  const locationBusy = useRef(false);
+  const locationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const list = useRef<FlatList<Dish>>(null);
 
   function changePage(next: number) {
     setPage(next);
     list.current?.scrollToOffset({ offset: 0, animated: true });
+  }
+
+  useEffect(() => {
+    return () => {
+      locationRequest.current += 1;
+      locationBusy.current = false;
+
+      if (locationTimer.current !== null) {
+        clearTimeout(locationTimer.current);
+      }
+    };
+  }, []);
+
+  function useTokyoStation() {
+    // Ignore any location request that finishes after this action.
+    locationRequest.current += 1;
+    locationBusy.current = false;
+
+    if (locationTimer.current !== null) {
+      clearTimeout(locationTimer.current);
+      locationTimer.current = null;
+    }
+
+    setLocating(false);
+    setLocationError(null);
+    setUsingDeviceLocation(false);
+    setSearchLocation(TOKYO_STATION);
+    changePage(0);
+  }
+
+  async function useMyLocation() {
+    if (locationBusy.current) return;
+
+    locationBusy.current = true;
+    const request = ++locationRequest.current;
+
+    setLocating(true);
+    setLocationError(null);
+
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+
+      if (request !== locationRequest.current) return;
+
+      if (!permission.granted) {
+        setLocationError(
+          permission.canAskAgain
+            ? 'Location permission was declined. Your search area is unchanged.'
+            : 'Enable location permission in your browser or device settings to use this feature.',
+        );
+        return;
+      }
+
+      // Start the timeout after the permission prompt is answered.
+      locationTimer.current = setTimeout(() => {
+        if (request !== locationRequest.current) return;
+
+        locationRequest.current += 1;
+        locationBusy.current = false;
+        locationTimer.current = null;
+
+        setLocating(false);
+        setLocationError(
+          'Finding your location took too long. Your search area is unchanged. Try again.',
+        );
+      }, 15000);
+
+      const position = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+
+      if (request !== locationRequest.current) return;
+
+      const { latitude, longitude } = position.coords;
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude) ||
+        latitude < -90 ||
+        latitude > 90 ||
+        longitude < -180 ||
+        longitude > 180
+      ) {
+        throw new Error('Invalid coordinates');
+      }
+
+      setSearchLocation({ latitude, longitude });
+      setUsingDeviceLocation(true);
+      changePage(0);
+    } catch {
+      if (request !== locationRequest.current) return;
+
+      setLocationError(
+        'Could not read your location. Check location services and permissions. Your search area is unchanged.',
+      );
+    } finally {
+      if (request === locationRequest.current) {
+        if (locationTimer.current !== null) {
+          clearTimeout(locationTimer.current);
+          locationTimer.current = null;
+        }
+
+        locationBusy.current = false;
+        setLocating(false);
+      }
+    }
   }
 
   useEffect(() => {
@@ -68,8 +188,8 @@ export default function HomeScreen() {
       try {
         const data = await fetchNearbyDishes(
           {
-            latitude: 35.6812,
-            longitude: 139.7671,
+            latitude: searchLocation.latitude,
+            longitude: searchLocation.longitude,
             radius,
             maxPrice: budget,
             sort,
@@ -138,7 +258,15 @@ export default function HomeScreen() {
       clearTimeout(timeout);
       controller.abort();
     };
-  }, [sort, budget, radius, page, retryCount]);
+  }, [
+    sort,
+    budget,
+    radius,
+    page,
+    retryCount,
+    searchLocation.latitude,
+    searchLocation.longitude,
+  ]);
 
   return <SafeAreaView style={styles.screen}>
     <View style={styles.container}>
@@ -161,6 +289,58 @@ export default function HomeScreen() {
               <View style={[styles.filterStripe, { width: 8 }]} />
             </View>
           </Pressable>
+        </View>
+        <View style={styles.locationSection}>
+          <Text style={styles.locationText}>
+            {usingDeviceLocation
+              ? 'Near your last detected location'
+              : 'Near Tokyo Station · Preview area'}
+          </Text>
+
+          <View style={styles.locationActions}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ disabled: locating }}
+              disabled={locating}
+              onPress={() => void useMyLocation()}
+              style={({ pressed }) => [
+                styles.locationAction,
+                locating && styles.disabled,
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.locationLink}>
+                {locating
+                  ? 'Finding location…'
+                  : usingDeviceLocation
+                    ? 'Refresh location'
+                    : 'Use my location'}
+              </Text>
+            </Pressable>
+
+            {(usingDeviceLocation || locating) && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={useTokyoStation}
+                style={({ pressed }) => [
+                  styles.locationAction,
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={styles.locationLink}>Use Tokyo Station</Text>
+              </Pressable>
+            )}
+          </View>
+
+          <Text style={styles.locationText}>
+            Your coordinates are sent to Cheap Eats to find nearby dishes.
+          </Text>
+
+          {locationError && (
+            <Text accessibilityRole="alert" style={styles.locationText}>
+              {locationError}
+            </Text>
+          )}
         </View>
         <View style={styles.sortRow}>
           <View style={styles.options}>
@@ -255,8 +435,9 @@ export default function HomeScreen() {
               />
             </View>
             <Text style={styles.preview}>
-              Development preview · Distances from Tokyo Station
-            </Text>
+              {usingDeviceLocation
+                ? 'Distances from your last detected location'
+                : 'Development preview · Distances from Tokyo Station'}            </Text>
           </View>
         } />
     </View>
@@ -539,5 +720,33 @@ const styles = StyleSheet.create({
     paddingVertical: 50,
     alignItems: 'center'
 
+  },
+
+  locationSection: {
+    gap: 4,
+    marginVertical: 8,
+  },
+
+  locationText: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#707070',
+  },
+
+  locationActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+
+  locationAction: {
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+
+  locationLink: {
+    fontSize: 13,
+    color: '#171717',
+    textDecorationLine: 'underline',
   },
 });
