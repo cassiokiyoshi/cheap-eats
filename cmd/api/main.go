@@ -100,6 +100,7 @@ func run() error {
 		"/api/restaurants/{id}/dishes",
 		dishHandler.ListByRestaurant,
 	)
+	router.NotFound(webHandler("web").ServeHTTP)
 
 	port := os.Getenv("PORT")
 	if port == "" {
