@@ -2,8 +2,10 @@
   "name": "cheap-eats-web-build",
   "private": true,
   "version": "1.0.0",
-  "engines": { "node": "22.x" },
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
-    "heroku-postbuild": "npm ci --prefix mobile --include=dev && npm run export:web --prefix mobile"
+    "heroku-postbuild": "npm ci --prefix mobile --include=dev && npm run export:web --prefix mobile && npm ci --prefix pathfinder --include=dev && npm run build --prefix pathfinder"
   }
 }

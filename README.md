@@ -190,3 +190,9 @@ The API currently has no authentication or authorization, including for write en
 
 - [Product direction and architecture decisions](docs/project-context.md)
 - [Architecture visualization](cheap-eats-architecture.html)
+
+## Pathfinder experiment
+
+The same Go server hosts Pathfinder at `/pathfinder/`, with its streaming API at `/pathfinder/api/search`. It uses no database tables. Its Svelte frontend lives in `pathfinder/`; algorithm and streaming packages live in `internal/pathfinder` and `internal/pathfinderhttp`. Source adapted from https://github.com/cassiokiyoshi/pathfinder.
+
+Build locally with `npm ci --prefix pathfinder && npm run build --prefix pathfinder`, then start the Go API from the repository root. Heroku builds both frontends through the root `heroku-postbuild` script.

@@ -101,6 +101,7 @@ func run() error {
 		"/api/restaurants/{id}/dishes",
 		dishHandler.ListByRestaurant,
 	)
+	mountPathfinder(router, "pathfinder/build")
 	router.NotFound(webHandler("web").ServeHTTP)
 
 	port := os.Getenv("PORT")
