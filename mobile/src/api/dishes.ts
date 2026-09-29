@@ -157,3 +157,123 @@ export async function fetchDishPriceHistory(
 
   return data as DishPriceChange[];
 }
+
+export type CreateDishInput = {
+  restaurant_id: number;
+  name: string;
+  name_ja?: string;
+  name_en?: string;
+  price: number;
+};
+
+export async function fetchRestaurants(
+  signal?: AbortSignal,
+): Promise<Restaurant[]> {
+  const data = await fetchDetail<unknown>(
+    '/api/restaurants',
+    'Restaurants',
+    signal,
+  );
+
+  if (!Array.isArray(data)) {
+    throw new Error('The API returned an unexpected restaurant list.');
+  }
+
+  return data as Restaurant[];
+}
+
+export async function createDish(
+  input: CreateDishInput,
+  signal?: AbortSignal,
+): Promise<Dish> {
+  const baseURL = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+  if (!baseURL) {
+    throw new Error('EXPO_PUBLIC_API_URL is not configured.');
+  }
+
+  const name = input.name.trim();
+
+  if (!name) {
+    throw new Error('Enter a dish name.');
+  }
+
+  if (
+    !Number.isSafeInteger(input.restaurant_id) ||
+    input.restaurant_id < 1
+  ) {
+    throw new Error('Select a restaurant.');
+  }
+
+  if (
+    !Number.isInteger(input.price) ||
+    input.price < 1 ||
+    input.price > 2_147_483_647
+  ) {
+    throw new Error('Price must be a whole number between ¥1 and ¥2,147,483,647.');
+  }
+
+  let response: Response;
+
+  try {
+    response = await fetch(
+      `${baseURL.replace(/\/+$/, '')}/api/dishes`,
+      {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          restaurant_id: input.restaurant_id,
+          name,
+          name_ja: input.name_ja?.trim() || undefined,
+          name_en: input.name_en?.trim() || undefined,
+          price: input.price,
+          currency: 'JPY',
+        }),
+        signal,
+      },
+    );
+  } catch {
+    throw new Error(
+      'Could not confirm whether the dish was saved. Check the restaurant’s dishes before submitting again.',
+    );
+  }
+
+  if (!response.ok) {
+    if (response.status === 400 || response.status === 413) {
+      const message = await response.text();
+      throw new Error(message.trim() || 'Check the dish details.');
+    }
+
+    throw new Error(
+      `Could not confirm the save (HTTP ${response.status}). Check the restaurant’s dishes before submitting again.`,
+    );
+  }
+
+  let data: unknown;
+
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error(
+      'The server accepted the dish, but its response could not be read. Check the restaurant’s dishes before submitting again.',
+    );
+  }
+
+  if (
+    typeof data !== 'object' ||
+    data === null ||
+    !('id' in data) ||
+    typeof data.id !== 'number' ||
+    !Number.isSafeInteger(data.id) ||
+    data.id < 1
+  ) {
+    throw new Error(
+      'The server accepted the dish, but returned an unexpected response. Check the restaurant’s dishes before submitting again.',
+    );
+  }
+
+  return data as Dish;
+}

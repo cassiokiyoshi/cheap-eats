@@ -290,16 +290,54 @@ export default function HomeScreen() {
             </View>
           </Pressable>
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Change search location, ${locationLabel}${previewArea ? ', preview area' : ''}`}
-          accessibilityState={{ expanded: locationOpen }}
-          onPress={() => setLocationOpen(true)}
-          style={({ pressed }) => [styles.locationSelector, pressed && styles.pressed]}
-        >
-          <Text style={styles.locationLink} numberOfLines={1}>⌖ {locationLabel} ▾</Text>
-          {previewArea && <Text style={styles.previewBadge}>Preview</Text>}
-        </Pressable>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Change search location, ${locationLabel}${previewArea ? ', preview area' : ''}`}
+              accessibilityState={{ expanded: locationOpen }}
+              onPress={() => setLocationOpen(true)}
+              style={({ pressed }) => [
+                styles.locationSelector,
+                { flex: 1, minWidth: 0 },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text style={styles.locationLink} numberOfLines={1}>
+                ⌖ {locationLabel} ▾
+              </Text>
+              {previewArea && <Text style={styles.previewBadge}>Preview</Text>}
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push('/dishes/new')}
+              style={({ pressed }) => [
+                {
+                  minHeight: 44,
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                },
+                pressed && styles.pressed,
+              ]}
+            >
+              <Text
+                style={{
+                  fontSize: 12,
+                  color: '#171717',
+                  textDecorationLine: 'underline',
+                }}
+              >
+                + Add dish
+              </Text>
+            </Pressable>
+          </View>
         <View style={styles.compactControls}>
           <Text style={styles.filterSummary}>Within {radius} m · Up to {yen(budget)}</Text>
           <Pressable accessibilityRole="button" accessibilityLabel={`Sorted by ${sort === 'price' ? 'lowest price' : 'nearest'}. Switch to ${sort === 'price' ? 'nearest' : 'lowest price'}`} onPress={() => { setSort(sort === 'price' ? 'distance' : 'price'); changePage(0); }} style={styles.sortControl}>

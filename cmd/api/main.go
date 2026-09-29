@@ -53,6 +53,7 @@ func run() error {
 		},
 		AllowedMethods: []string{
 			http.MethodGet,
+			http.MethodPost,
 			http.MethodOptions,
 		},
 		AllowedHeaders: []string{
