@@ -120,8 +120,13 @@ export function LocationSheet({ area, locating, locationError, onLocate, onClose
             {locationError && <Text accessibilityRole="alert" style={styles.hint}>{locationError}</Text>}
           </View>
           <View style={[styles.map, Platform.OS === 'web' && { touchAction: 'none' }]} onLayout={event => setSize(event.nativeEvent.layout)} {...pan.panHandlers}>
-            <View pointerEvents="none" style={StyleSheet.absoluteFill}>{tiles}</View>
-            <View pointerEvents="none" style={styles.pin}><Text style={styles.pinText}>📍</Text></View>
+            <View style={[StyleSheet.absoluteFill, { pointerEvents: 'none' }]}>
+              {tiles}
+            </View>
+
+            <View style={[styles.pin, { pointerEvents: 'none' }]}>
+              <Text style={styles.pinText}>📍</Text>
+            </View>
             <View style={styles.zoom}><Action label="+" accessibilityLabel="Zoom in" onPress={() => setZoom(Math.min(18, zoom + 1))} disabled={zoom === 18} /><Action label="−" accessibilityLabel="Zoom out" onPress={() => setZoom(Math.max(3, zoom - 1))} disabled={zoom === 3} /></View>
           </View>
           <View style={styles.row}><Text style={styles.hint}>Move the map to place the pin</Text><Pressable accessibilityRole="link" onPress={() => void Linking.openURL('https://www.openstreetmap.org/copyright')}><Text style={styles.attribution}>© OpenStreetMap contributors</Text></Pressable></View>

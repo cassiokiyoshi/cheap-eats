@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchNearbyDishes } from '@/api/dishes';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FilterSheet } from '@/components/filter-sheet';
 import { LocationSheet, type SearchArea } from '@/components/location-sheet';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import type { ImageSourcePropType } from 'react-native';
 import { DishPhoto } from '@/components/dish-photo';
 import { getDemoDishImage } from '@/constants/demo-images';
@@ -169,7 +169,7 @@ export default function HomeScreen() {
     }
   }
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     const controller = new AbortController();
     let active = true;
     let timedOut = false;
@@ -266,7 +266,7 @@ export default function HomeScreen() {
     retryCount,
     searchLocation.latitude,
     searchLocation.longitude,
-  ]);
+  ]));
 
   return <SafeAreaView style={styles.screen}>
     <View style={styles.container}>

@@ -39,7 +39,7 @@ export function DishPhoto({
             onError={() => setFailed(true)}
           />
 
-          <View pointerEvents="none" style={styles.badge}>
+          <View style={[styles.badge, { pointerEvents: 'none' }]}>
             <Text style={styles.badgeText}>
               AI-generated · Illustrative only
             </Text>
