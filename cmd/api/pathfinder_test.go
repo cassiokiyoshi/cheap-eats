@@ -57,3 +57,26 @@ func TestPathfinderMount(t *testing.T) {
 		}
 	}
 }
+
+func TestPathfinderCORS(t *testing.T) {
+	handler := pathfinderCORS(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(200) }))
+	for _, tc := range []struct {
+		path, origin string
+		allowed      bool
+	}{
+		{"/pathfinder/api/search", "https://cassiokiyoshi.github.io", true},
+		{"/pathfinder/api/search", "https://example.com", false},
+		{"/api/dishes", "https://cassiokiyoshi.github.io", false},
+	} {
+		req := httptest.NewRequest("OPTIONS", tc.path, nil)
+		req.Header.Set("Origin", tc.origin)
+		req.Header.Set("Access-Control-Request-Method", "POST")
+		req.Header.Set("Access-Control-Request-Headers", "content-type")
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		allowed := w.Header().Get("Access-Control-Allow-Origin") == tc.origin
+		if allowed != tc.allowed {
+			t.Fatalf("%s %s: allowed=%v", tc.path, tc.origin, allowed)
+		}
+	}
+}

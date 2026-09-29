@@ -46,6 +46,7 @@ func run() error {
 	router.Use(middleware.Logger)
 	router.Use(middleware.Recoverer)
 
+	router.Use(pathfinderCORS)
 	router.Use(cors.Handler(cors.Options{
 		AllowedOrigins: []string{
 			"http://localhost:8081",
