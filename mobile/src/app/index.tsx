@@ -3,6 +3,7 @@ import { fetchNearbyDishes } from '@/api/dishes';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FilterSheet } from '@/components/filter-sheet';
+import { LocationSheet, type SearchArea } from '@/components/location-sheet';
 import { router } from 'expo-router';
 import type { ImageSourcePropType } from 'react-native';
 import { DishPhoto } from '@/components/dish-photo';
@@ -48,6 +49,9 @@ export default function HomeScreen() {
   const [retryCount, setRetryCount] = useState(0);
 
   const [searchLocation, setSearchLocation] = useState(TOKYO_STATION);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const [locationLabel, setLocationLabel] = useState('Tokyo Station');
+  const [previewArea, setPreviewArea] = useState(true);
   const [usingDeviceLocation, setUsingDeviceLocation] = useState(false);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -74,7 +78,7 @@ export default function HomeScreen() {
     };
   }, []);
 
-  function useTokyoStation() {
+  function closeLocation() {
     // Ignore any location request that finishes after this action.
     locationRequest.current += 1;
     locationBusy.current = false;
@@ -86,9 +90,7 @@ export default function HomeScreen() {
 
     setLocating(false);
     setLocationError(null);
-    setUsingDeviceLocation(false);
-    setSearchLocation(TOKYO_STATION);
-    changePage(0);
+    setLocationOpen(false);
   }
 
   async function useMyLocation() {
@@ -147,9 +149,7 @@ export default function HomeScreen() {
         throw new Error('Invalid coordinates');
       }
 
-      setSearchLocation({ latitude, longitude });
-      setUsingDeviceLocation(true);
-      changePage(0);
+      return { latitude, longitude };
     } catch {
       if (request !== locationRequest.current) return;
 
@@ -290,65 +290,22 @@ export default function HomeScreen() {
             </View>
           </Pressable>
         </View>
-        <View style={styles.locationSection}>
-          <Text style={styles.locationText}>
-            {usingDeviceLocation
-              ? 'Near your last detected location'
-              : 'Near Tokyo Station · Preview area'}
-          </Text>
-
-          <View style={styles.locationActions}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityState={{ disabled: locating }}
-              disabled={locating}
-              onPress={() => void useMyLocation()}
-              style={({ pressed }) => [
-                styles.locationAction,
-                locating && styles.disabled,
-                pressed && styles.pressed,
-              ]}
-            >
-              <Text style={styles.locationLink}>
-                {locating
-                  ? 'Finding location…'
-                  : usingDeviceLocation
-                    ? 'Refresh location'
-                    : 'Use my location'}
-              </Text>
-            </Pressable>
-
-            {(usingDeviceLocation || locating) && (
-              <Pressable
-                accessibilityRole="button"
-                onPress={useTokyoStation}
-                style={({ pressed }) => [
-                  styles.locationAction,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Text style={styles.locationLink}>Use Tokyo Station</Text>
-              </Pressable>
-            )}
-          </View>
-
-          <Text style={styles.locationText}>
-            Your coordinates are sent to Cheap Eats to find nearby dishes.
-          </Text>
-
-          {locationError && (
-            <Text accessibilityRole="alert" style={styles.locationText}>
-              {locationError}
-            </Text>
-          )}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Change search location, ${locationLabel}${previewArea ? ', preview area' : ''}`}
+          accessibilityState={{ expanded: locationOpen }}
+          onPress={() => setLocationOpen(true)}
+          style={({ pressed }) => [styles.locationSelector, pressed && styles.pressed]}
+        >
+          <Text style={styles.locationLink} numberOfLines={1}>⌖ {locationLabel} ▾</Text>
+          {previewArea && <Text style={styles.previewBadge}>Preview</Text>}
+        </Pressable>
+        <View style={styles.compactControls}>
+          <Text style={styles.filterSummary}>Within {radius} m · Up to {yen(budget)}</Text>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Sorted by ${sort === 'price' ? 'lowest price' : 'nearest'}. Switch to ${sort === 'price' ? 'nearest' : 'lowest price'}`} onPress={() => { setSort(sort === 'price' ? 'distance' : 'price'); changePage(0); }} style={styles.sortControl}>
+            <Text style={styles.sortText}>Sort: {sort === 'price' ? 'Price' : 'Nearest'} ↕</Text>
+          </Pressable>
         </View>
-        <View style={styles.sortRow}>
-          <View style={styles.options}>
-            <Choice label="Distance" selected={sort === 'distance'} onPress={() => { setSort('distance'); changePage(0); }} />
-            <Choice label="Price" selected={sort === 'price'} onPress={() => { setSort('price'); changePage(0); }} />
-          </View>
-        </View>
-       <Text style={styles.summary}>Within {radius} m · Up to {yen(budget)}</Text>
       </View>
       <FlatList ref={list} data={results} numColumns={2}
         keyExtractor={(dish) => String(dish.id)} style={styles.list} contentContainerStyle={styles.content} columnWrapperStyle={styles.columns}
@@ -437,10 +394,25 @@ export default function HomeScreen() {
             <Text style={styles.preview}>
               {usingDeviceLocation
                 ? 'Distances from your last detected location'
-                : 'Development preview · Distances from Tokyo Station'}            </Text>
+                : previewArea ? 'Development preview · Distances from Tokyo Station' : `Distances from ${locationLabel}`}            </Text>
           </View>
         } />
     </View>
+    {locationOpen && <LocationSheet
+      area={{ ...searchLocation, label: locationLabel, device: usingDeviceLocation }}
+      locating={locating}
+      locationError={locationError}
+      onLocate={useMyLocation}
+      onClose={closeLocation}
+      onApply={(area: SearchArea) => {
+        setSearchLocation({ latitude: area.latitude, longitude: area.longitude });
+        setLocationLabel(area.label);
+        setUsingDeviceLocation(Boolean(area.device));
+        setPreviewArea(false);
+        changePage(0);
+        closeLocation();
+      }}
+    />}
     {filtersOpen && (
     <FilterSheet
       budget={budget}
@@ -722,31 +694,43 @@ const styles = StyleSheet.create({
 
   },
 
-  locationSection: {
-    gap: 4,
-    marginVertical: 8,
+  locationSelector: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
-
-  locationText: {
-    fontSize: 12,
-    lineHeight: 18,
+  locationLink: {
+    flexShrink: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#171717',
+  },
+  previewBadge: {
+    fontSize: 10,
     color: '#707070',
+    backgroundColor: '#F2F2F2',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 5,
   },
-
-  locationActions: {
+  compactControls: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    alignItems: 'center',
+    gap: 6,
   },
-
-  locationAction: {
+  filterSummary: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: '#666666',
+    flexShrink: 1,
+  },
+  sortControl: {
     minHeight: 44,
     justifyContent: 'center',
+    marginLeft: 'auto',
+    paddingHorizontal: 4,
   },
-
-  locationLink: {
-    fontSize: 13,
-    color: '#171717',
-    textDecorationLine: 'underline',
-  },
+  sortText: { fontSize: 12, color: '#666666' },
 });
